@@ -1,0 +1,5 @@
+(executable
+ (libraries unix ANSITerminal)
+ (modules pp accord chiffrage note help_chords)
+ (name help_chords))
+
