@@ -27,14 +27,15 @@ let alter n alt =
   | Exact -> n;;
 
 let interval n (i,alt) =
+  let open SiBemolMajeur in
   let note_sans_alt =
     match i with
     | 2 -> seconde n
-    | 3 -> tierce_majeure n
-    | 4 -> quarte_juste n
-    | 5 -> quinte_juste n
-    | 6 -> sixte_majeure n
-    | 7 -> septieme_majeure n
+    | 3 -> tierce n
+    | 4 -> quarte n
+    | 5 -> quinte n
+    | 6 -> sixte n
+    | 7 -> septieme n
     | _ -> failwith ("interval inconnu: "^ string_of_int i) in
   alter note_sans_alt alt
 

@@ -26,3 +26,22 @@ val sixte_majeure : t -> t
 val sixte : t -> t
 val septieme_mineure : t -> t
 val septieme_majeure : t -> t
+
+
+module type Gamme = sig
+  val gamme: (t*int) list
+  val interv: t -> int -> t
+  val seconde: t -> t
+  val tierce: t -> t
+  val quarte: t -> t
+  val quinte: t -> t
+  val sixte: t -> t
+  val septieme: t -> t
+  val octave: t -> t
+end 
+
+
+module SiBemolMajeur : Gamme
+module FaMajeur : Gamme
+
+

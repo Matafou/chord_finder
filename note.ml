@@ -76,6 +76,9 @@ let of_string s =
   | "B" -> B
   | _ -> raise (Unknown_Notation s)
 ;;
+
+(* Les intervalles absolus. *)
+
 (* Gamme majeure, sans tenir compte du fait que les altérations # et ♭
    ne tombent pas au milieu d'un ton. Pour l'instant on se base sur les intervalles simples:
    https://theoriemusicale.camilleroux.com/intervalles   *)
@@ -105,3 +108,77 @@ let parse_list s =
   List.map of_string (List.filter (String.equal "") ls)
 
 
+let rec remove_before note lgamme =
+  match lgamme with
+  | [] -> assert false
+  | (n,_) :: _ when n = note -> lgamme
+  | _ :: l' -> remove_before note l'
+
+let rec prefix n l =
+  if n = 0 then []
+  else match l with
+       | [] -> assert false
+       | e::l' -> e::prefix (n-1) l'
+
+(* gammed should contain the interval. By doubling a standard gamme we
+   should capture all interval until the octave. *)
+let extract_interv_notes gammed note interv =
+  (prefix interv (remove_before note gammed))
+
+let rec last l =
+match l with
+| [] -> assert false
+| e::[] -> e
+| _::l' -> last l'
+
+
+module type GammeSeq =
+sig
+  val gamme: (t*int) list
+end  
+
+module type Gamme = sig
+  include GammeSeq
+  val interv: t -> int -> t
+  val seconde: t -> t
+  val tierce: t -> t
+  val quarte: t -> t
+  val quinte: t -> t
+  val sixte: t -> t
+  val septieme: t -> t
+  val octave: t -> t
+end 
+
+module MakeGamme(G:GammeSeq): Gamme = struct
+  include G
+  let interv note n =
+    let lnotes = extract_interv_notes (G.gamme@G.gamme) note n in
+    fst (last lnotes)
+  let seconde note = interv note 2
+  let tierce note = interv note 3
+  let quarte note = interv note 4
+  let quinte note = interv note 5
+  let sixte note = interv note 6
+  let septieme note = interv note 7
+  let octave note = interv note 8
+end
+
+module SiBemolMajeurSeq: GammeSeq = struct
+  let gamme =
+    let gamme = [C;D;DD;F;G;A;AD] in
+    let gamme_interv = [2;1;2;2;2;1;2] in
+    List.combine gamme gamme_interv
+end
+
+
+module FaMajeurSeq: GammeSeq = struct
+  let gamme =
+    let gamme = [C;D;E;F;G;A;AD] in
+    let gamme_interv = [2;2;1;2;2;1;2] in
+    List.combine gamme gamme_interv
+end
+
+
+
+module SiBemolMajeur = MakeGamme(SiBemolMajeurSeq)
+module FaMajeur = MakeGamme(FaMajeurSeq)
