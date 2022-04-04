@@ -1,8 +1,9 @@
-type t = { dominante: Note.t; nom: Note.t -> string; ecarts: int list }
 
 module type GammeSpec =
 sig
-  val g: t
+  val dominante: Note.t
+  val nom:Note.t -> string
+  val ecarts: int list
 end  
 
 module type Note =
@@ -11,7 +12,7 @@ sig
 end
 
 module type Gamme = sig
-  val g: t
+  include GammeSpec
   val map: (Note.t -> 'a) -> 'a list
   val iter: (Note.t -> unit) -> unit
   val pr: Format.formatter -> unit -> unit
@@ -29,11 +30,6 @@ end
 module MakeGamme(G:GammeSpec): Gamme
 module MakeGammeMajeure(N:Note): GammeSpec
 module MakeGammeMineure(N:Note): GammeSpec
-
-module SibMajeur : Gamme
-module FaMajeur : Gamme
-module DoMajeur: Gamme
-module DoChromatique: Gamme
 
 type gammeStandard =
   Majeur of Note.t

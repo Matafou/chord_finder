@@ -1,9 +1,11 @@
 
-type t = { dominante: Note.t; nom:Note.t -> string; ecarts: int list }
+(* type t = { dominante: Note.t; nom:Note.t -> string; ecarts: int list } *)
 
 module type GammeSpec =
 sig
-  val g: t
+  val dominante: Note.t
+  val nom:Note.t -> string
+  val ecarts: int list
 end  
 
 module type Note =
@@ -11,27 +13,24 @@ sig
   val n: Note.t
 end
 
-module Do: Note = struct let n = Note.C end
-module Sib: Note = struct let n = Note.AD end
-module Fa: Note = struct let n = Note.F end
-
 module MakeGammeMajeure(N:Note): GammeSpec = struct
-  let g = { dominante = N.n; nom = (fun x -> (Note.to_string x^"M")) ; ecarts = [2;2;1;2;2;2;1] }
+  let dominante = N.n
+  let nom x = Note.to_string x^"M"
+  let  ecarts = [2;2;1;2;2;2;1]
 end
 
 module MakeGammeMineure(N:Note): GammeSpec = struct
-  let g = { dominante = N.n; nom = (fun x -> (Note.to_string x^"m")) ; ecarts = [2;1;2;2;1;2;2] }
+  let dominante = N.n
+  let nom x = Note.to_string x^"m"
+  let ecarts = [2;1;2;2;1;2;2] 
 end
 
 module MakeGammeChromatique(N:Note): GammeSpec = struct
-  let g = { dominante = N.n; nom = (fun x -> (Note.to_string x^" chromatique")) ;
-            ecarts = [1;1;1;1;1;1;1;1;1;1;1;1] }
+  let dominante = N.n
+  let nom x = Note.to_string x^" chromatique"
+  let ecarts = [1;1;1;1;1;1;1;1;1;1;1;1]
 end
 
-
-module DoMajeurSeq: GammeSpec = MakeGammeMajeure(Do)
-module SibMajeurSeq: GammeSpec = MakeGammeMajeure(Sib)
-module FaMajeurSeq: GammeSpec = MakeGammeMajeure(Fa)
 
 module type Gamme = sig
   include GammeSpec
@@ -64,7 +63,7 @@ module MakeGamme(G:GammeSpec): Gamme = struct
       | [] -> []
       | i::l' -> n:: gen dom (Note.decale_chrom n i) l'
     in
-    gen G.g.dominante G.g.dominante G.g.ecarts
+    gen G.dominante G.dominante G.ecarts
   let degres = List.mapi (fun i n -> (n,i)) gamme_
   (* 2 = seconde, 3 = tierce, ...  *)
   let interv note n =
@@ -74,7 +73,7 @@ module MakeGamme(G:GammeSpec): Gamme = struct
         else if n < 0 then extract_interv_notes (List.rev (degres@degres)) note (-n)
         else assert false
       with Not_found ->
-        let msg = "Note non présente dans la gamme "^(G.g.nom G.g.dominante)
+        let msg = "Note non présente dans la gamme "^(G.nom G.dominante)
                   ^": "^Note.to_string note in
         failwith msg
 
@@ -93,10 +92,18 @@ module MakeGamme(G:GammeSpec): Gamme = struct
   let octave note = interv note 8
 end
 
-module SibMajeur = MakeGamme(SibMajeurSeq)
-module FaMajeur = MakeGamme(FaMajeurSeq)
-module DoMajeur: Gamme = MakeGamme(DoMajeurSeq)
-module DoChromatique: Gamme = MakeGamme(MakeGammeChromatique(Do))
+module M(N:Note) (MG:Note -> GammeSpec): Gamme = struct
+  module Spec = MG(N)
+  include Spec
+  module M = MakeGamme(Spec)
+  include M
+end
+
+module Majeure(N:Note): Gamme = M(N)(MakeGammeMajeure)
+module Mineure(N:Note): Gamme = M(N)(MakeGammeMineure)
+module Chromatique(N:Note): Gamme = M(N)(MakeGammeChromatique)
+
+
 
 type gammeStandard =
   Majeur of Note.t
@@ -106,13 +113,11 @@ let gen_gamme(g:gammeStandard): (module Gamme) =
   match g with
   | Majeur dom ->
      let module Ggg = struct let n = dom end in
-     let module Gg = MakeGammeMajeure(Ggg) in
-     let module G = MakeGamme(Gg) in
-     (module G: Gamme)
+     let module Gg:Gamme = Majeure(Ggg) in
+     (module Gg: Gamme)
   | Mineur dom -> let module Ggg = struct let n = dom end in
-     let module Gg = MakeGammeMineure(Ggg) in
-     let module G = MakeGamme(Gg) in
-     (module G: Gamme)
+     let module Gg = Mineure(Ggg) in
+     (module Gg: Gamme)
 
 
 

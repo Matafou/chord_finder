@@ -82,14 +82,16 @@ let of_string s =
 let decale_chrom n i = of_int ((to_int n + i) mod 12)
 let next_chrom n = of_int ((to_int n + 1) mod 12)
 
+exception Impossible_note of string
+
 let diesify n =
   match n with
-  | E | B | CD | DD | FD | GD | AD -> failwith ("Note "^to_string n^"# n'existe pas")
+  | E | B | CD | DD | FD | GD | AD -> raise (Impossible_note (to_string n^"#"))
   | _ -> decale_chrom n 1
 
 let bemolify n =
   match n with
-  | F | C | CD | DD | FD | GD | A -> failwith ("Note "^to_string n^"# n'existe pas")
+  | F | C | CD | DD | FD | GD | AD -> raise (Impossible_note (to_string n^"b"))
   | _ -> decale_chrom n (-1)
 
 

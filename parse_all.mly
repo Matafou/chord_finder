@@ -9,7 +9,7 @@
 (** Formula tokens *)
 %token DIESE BEMOL MAJEUR MINEUR DO RE MI FA SOL LA SI
 /* %token <string> ID OP */
-/* %token <int> NUM */
+%token <int> INT
 
 (** unrecognized token *)
 %token UNKNOWN
@@ -65,15 +65,28 @@ chiffrage_eof:
 | c=chiffrage_complet EOF { c }
 ;
 chiffrage_complet:
-| n = note l=list(chiffrage) { {Chiffrage.basse=n; Chiffrage.indics = l} }
+| n = note
+  l=list(chiffrage) {
+    let updated_indics =
+      (* l has dummy notes in relative chiffrages replace them by n *)
+      List.map Chiffrage.(
+        function
+        | (Diese (Relative (_,i))) -> (Diese (Relative (n,i)))
+        | (Bemol (Relative (_,i))) -> (Bemol (Relative (n,i)))
+        | (Exact (Relative (_,i))) -> (Exact (Relative (n,i)))
+        | c -> c)
+        l in
+    Chiffrage.{basse=n; indics = updated_indics} }
 ;
 
 chiffrage:
 | n = note_simple { Chiffrage.(Exact (Absolu n)) }
 | n = note_simple DIESE { Chiffrage.(Diese (Absolu n)) }
 | n = note_simple BEMOL { Chiffrage.(Bemol (Absolu n)) }
+| i = INT DIESE {let dummy_note = Note.C in Chiffrage.(Diese (Relative (dummy_note,i)))}
+| i = INT BEMOL {let dummy_note = Note.C in Chiffrage.(Bemol (Relative (dummy_note,i)))}
+| i = INT {let dummy_note = Note.C in Chiffrage.(Exact (Relative (dummy_note,i)))}
 ;
-
 
 gamme_name:
 | n=note MAJEUR { Gamme.Majeur n }

@@ -51,9 +51,9 @@ let rec ask_acc_bass g n =
     else if s.[0] <> 'q' then
       let () =
         try 
-          let (module G: Gamme.Gamme) = g in
-          let ch:Chiffrage.t = Chiffrage.parse_chiffrage s in
-          let l = Chiffrage.interp G.interv ch in
+          let (module G: Chiffrage.S) = g in
+          let ch:Chiffrage.t = Parse.parseStringChiffrage s in
+          let l = G.interp ch in
           let all_chords = Accord.chain_chord_makers Accord.all_chord_makers in
           let chords : (int*Accord.t) list = intersect_all all_chords l in
           let chords_filtered = List.filter (fun (i,_) -> i>=n) chords in
@@ -70,9 +70,6 @@ let rec ask_acc_bass g n =
       ask_acc_bass g n)
 ;;
 
-
-
-
 let rec ask_gamme () =
   let () = Format.printf "Quelle gamme (\"dominante adjectif\") @?" in
   let s = read_line() in
@@ -82,18 +79,17 @@ let rec ask_gamme () =
       match gammename with
       | Majeur dom -> Gamme.Majeur dom
       | Mineur dom -> Gamme.Mineur dom
-    with _ -> ask_gamme ()
+    with e ->
+      let () = Format.printf "Don't understand@.@?" in
+      let () = Format.printf "%s@.@?" (Printexc.to_string_default e) in
+      ask_gamme ()
   else exit 0;;
-
-
-(* let parse_note s = *)
-  (* let lb = Lexing.from_string s in *)
-  (* Parse.note Lex.next_token lb *)
 
 
 let () =
   let g:Gamme.gammeStandard = ask_gamme() in
   let gamme = Gamme.gen_gamme g in
   let (module G) = gamme in
-  Format.printf "Gamme de %s: @[%a@]@?" (G.g.nom G.g.dominante) G.pr ();
-  ask_acc_bass gamme 2;;
+  Format.printf "Gamme de %s: @[%a@]@?" (G.nom G.dominante) G.pr ();
+  let module Chifr:Chiffrage.S = Chiffrage.Make(G) in
+  ask_acc_bass (module Chifr) 2;;

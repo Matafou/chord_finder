@@ -14,6 +14,7 @@ let blank = [' ' '\t']
 let lowercase = ['a'-'z']
 let uppercase = ['A'-'Z']
 let digit = ['0'-'9']
+let unsigned_int = digit+
 let integer = ['-''+']?digit+
 let identchar = [ 'A'-'Z' 'a'-'z'  '0'-'9' '_' '.' ]
 let identstart = ['A'-'Z' 'a'-'z' '_' '@']
@@ -42,6 +43,7 @@ rule next_token = parse
 | note_sol           { SOL }
 | note_la           { LA }
 | note_si           { SI }
+| unsigned_int      {INT (int_of_string (Lexing.lexeme lexbuf))}
 | eof                { EOF }
 | '\n'               { L.new_line lexbuf; next_token lexbuf }
 | blank +            { next_token lexbuf }

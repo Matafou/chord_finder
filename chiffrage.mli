@@ -13,9 +13,12 @@ type indic =
 (* Représente une note + des indications *)
 type t = { basse: Note.t ; indics : indic list }
 
-(* PArsing de l'indication: exemples: "C 3 5#", "C 3# b5 F" *)
-val parse_chiffrage : string -> t
+(* Interprétation de l'indication dans une gamme donnée. *)
 
-(* Interprétation de l'indication dans une gamme donnée. interv
-   correspond à une gamme. *)
-val interp : (Note.t -> int -> Note.t) -> t -> Note.t list
+module type S =
+sig
+  val interp: t -> Note.t list
+end
+
+(* Foncteur prenant une gamme en paramètre *)
+module Make: Gamme.Gamme -> S
