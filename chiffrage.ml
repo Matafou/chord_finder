@@ -2,55 +2,57 @@ open Note
 (* Les intervales en notation "chiffrage d'accord".
    https://fr.wikipedia.org/wiki/Chiffrage_des_accords *)
 
-type alteration = Diese | Bemol| Exact;;
+(* type alteration = Diese | Bemol| Exact;; *)
 
-type interval = (int*alteration)
+type raw =
+  | Absolu of Note.t
+  | Relative of (Note.t*int)
 
-let interval_of_string s =
+type indic =
+  | Diese of raw
+  | Bemol of raw
+  | Exact of raw
+
+type t = { basse: Note.t ; indics : indic list }
+
+let interval_of_string (n:Note.t) (s:string):indic =
   let remove_fst x = String.sub x 1 (String.length s - 1) in
   let remove_last x = String.sub x 0 (String.length s - 1) in
   try
     match s.[0] with
-    | '#' -> (int_of_string (remove_fst s) , Diese)
-    | 'b' -> (int_of_string (remove_fst s) , Bemol)
+    | '#' -> Diese (Relative (n,int_of_string (remove_fst s)))
+    | 'b' -> let rel = int_of_string (remove_fst s) in
+             Bemol (Relative (n,rel))
     | _ ->
        (match s.[String.length s - 1] with
-        | '#' -> (int_of_string (remove_last s) , Diese)
-        | 'b' -> (int_of_string (remove_last s) , Bemol)
-        | _ -> int_of_string s , Exact)
+        | '#' -> Diese (Relative (n,int_of_string (remove_last s)))
+        | 'b' -> Bemol(Relative (n,int_of_string (remove_last s)))
+        | _ -> Exact (Relative (n,int_of_string s)))
   with _ -> raise (Unknown_Notation s)
 
-let alter n alt =
-  match alt with
-  | Diese -> of_int ((to_int n + 1) mod 12)
-  | Bemol -> of_int ((to_int n - 1) mod 12)
-  | Exact -> n;;
+let interval_or_note_of_string basse s: indic =
+  let module G = Gamme.DoMajeur in
+  try interval_of_string basse s
+  with _ -> Exact (Absolu (Note.of_string s))
 
-let interval n (i,alt) =
-  let open SiBemolMajeur in
-  let note_sans_alt =
-    match i with
-    | 2 -> seconde n
-    | 3 -> tierce n
-    | 4 -> quarte n
-    | 5 -> quinte n
-    | 6 -> sixte n
-    | 7 -> septieme n
-    | _ -> failwith ("interval inconnu: "^ string_of_int i) in
-  alter note_sans_alt alt
-
-let interval_or_note_to_string basse s =
-  try interval basse (interval_of_string s)
-  with _ -> of_string s;;
-
-let parse_list s =
+let parse_chiffrage s: t =
   let ls = String.split_on_char ' ' s in
   let ls = List.filter (fun x -> not (String.equal x "")) ls in
-  if ls = [] then []
-  else
-    let basse = Note.of_string (List.hd ls) in
-    basse :: List.map (interval_or_note_to_string basse) (List.tl ls)
+  let basse = Note.of_string (List.hd ls) in
+  { basse = basse; indics = List.map (interval_or_note_of_string basse) (List.tl ls) }
 
-let interp_interval_de_basse basse (l:interval list): t list =
-  let lnotes = List.map (interval basse) l in
-  basse :: lnotes
+
+
+let interp_raw_indic interv r =
+  match r with
+  | Absolu n -> n
+  | Relative (n,i) -> interv n i
+
+let interp_indic interv i =
+  match i with
+  | Diese r -> Note.decale_chrom (interp_raw_indic interv r) 1
+  | Bemol r -> Note.decale_chrom (interp_raw_indic interv r) (-1)
+  | Exact r -> (interp_raw_indic interv r)
+
+let interp interv ch =
+  ch.basse::List.map (fun indic -> interp_indic interv indic) ch.indics

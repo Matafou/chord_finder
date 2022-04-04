@@ -1,6 +1,6 @@
 open Note
 
-type accord = { name:string; tonique: t; autres: t list };;
+type t = { name:string; tonique: Note.t; autres: Note.t list }
 
 let mk s n l = { name = s; tonique = n ; autres = l }
 
@@ -26,10 +26,10 @@ let notes_of_chord chord = chord.tonique::chord.autres
 
 (* Printing *)
 
-let pr fmt (ac:accord) = Format.fprintf fmt "%s" ac.name
+let pr fmt (ac:t) = Format.fprintf fmt "%s" ac.name
 
-let pr_fixed_width n fmt (ac:accord) =
+let pr_fixed_width n fmt (ac:t) =
   let lgth = String.length ac.name in
   let spaces = String.init (n-lgth) (fun _ -> ' ') in
-   Format.fprintf fmt "%s%s" ac.name spaces
+  Format.fprintf fmt "%s%s" ac.name spaces
 

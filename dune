@@ -1,5 +1,12 @@
 (executable
- (libraries unix ANSITerminal)
- (modules pp accord chiffrage note help_chords)
+ (libraries unix ANSITerminal menhirLib)
+ (modules pp accord chiffrage note gamme help_chords lex parse_all parse)
  (name help_chords))
 
+;; parse.ml + parse.mli
+(menhir
+ (flags --unused-token UNKNOWN)
+ (modules parse_all))
+
+;; ocamllex compile lex.mll into lex_formula.ml
+(ocamllex lex)

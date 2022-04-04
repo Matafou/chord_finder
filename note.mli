@@ -1,4 +1,4 @@
-type t
+type t = A | AD | B | C | CD | D | DD | E | F | FD | G | GD;;
 
 exception Unknown_Notation of string
 
@@ -8,7 +8,12 @@ val to_string: t -> string
 val of_int: int -> t
 val of_string: string -> t
 val pr: Format.formatter -> t -> unit
+val pr_l: Format.formatter -> t list -> unit
 val parse_list: string -> t list
+val decale_chrom: t -> int -> t
+val next_chrom: t -> t
+val diesify: t -> t
+val bemolify: t -> t
 
 val seconde_mineure : t -> t
 val seconde_majeure : t -> t
@@ -28,20 +33,5 @@ val septieme_mineure : t -> t
 val septieme_majeure : t -> t
 
 
-module type Gamme = sig
-  val gamme: (t*int) list
-  val interv: t -> int -> t
-  val seconde: t -> t
-  val tierce: t -> t
-  val quarte: t -> t
-  val quinte: t -> t
-  val sixte: t -> t
-  val septieme: t -> t
-  val octave: t -> t
-end 
-
-
-module SiBemolMajeur : Gamme
-module FaMajeur : Gamme
 
 

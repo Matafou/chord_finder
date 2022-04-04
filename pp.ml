@@ -1,4 +1,25 @@
 
+(* LIST OPERATIONS *)
+
+let rec remove_before note lgamme =
+  match lgamme with
+  | [] -> raise Not_found
+  | (n,_) :: _ when n = note -> lgamme
+  | _ :: l' -> remove_before note l'
+
+let rec prefix n l =
+  if n <= 0 then []
+  else match l with
+       | [] -> assert false
+       | e::l' -> e::prefix (n-1) l'
+
+let rec last l =
+  match l with
+  | [] -> assert false
+  | e::[] -> e
+  | _::l' -> last l'
+
+
 (* PRINTING *)
 
 module T = ANSITerminal
