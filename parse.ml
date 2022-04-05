@@ -8,30 +8,30 @@ let print_position outx lexbuf =
 
 let parse_notes_with_error lexbuf: Note.t list =
   try Parse_all.note_list Lex.next_token lexbuf with
-  | Lex.Error (lb,msg) ->
-     Format.eprintf " Lexical error, %a: %s\n" print_position lb msg;
-     exit (-1)
-  | Parse_all.Error ->
-    Format.eprintf "syntax error, %a: \n" print_position lexbuf;
-    exit (-1) 
+  | Lex.Error (lb,msg) as e ->
+     Format.eprintf " Lexical error, %a: %s@.@?" print_position lb msg;
+     raise e
+  | Parse_all.Error as e ->
+     Format.eprintf "syntax error, %a: @.@?" print_position lexbuf;
+     raise e
 
 let parse_gamme_name_with_error lexbuf: Gamme.gammeStandard =
   try Parse_all.gamme_name_eof Lex.next_token lexbuf with
-  | Lex.Error (lb,msg) ->
-     Format.eprintf " Lexical error, %a: %s\n" print_position lb msg;
-     exit (-1)
-  | Parse_all.Error ->
-    Format.eprintf "syntax error, %a: \n" print_position lexbuf;
-    exit (-1) 
+  | Lex.Error (lb,msg) as e ->
+     Format.eprintf " Lexical error, %a: %s@.@?" print_position lb msg;
+     raise e
+  | Parse_all.Error as e ->
+    Format.eprintf "syntax error, %a: @.@?" print_position lexbuf;
+    raise e 
 
 let parse_chiffrage_with_error lexbuf: Chiffrage.t =
   try Parse_all.chiffrage_eof Lex.next_token lexbuf with
-  | Lex.Error (lb,msg) ->
-     Format.eprintf " Lexical error, %a: %s\n" print_position lb msg;
-     exit (-1)
-  | Parse_all.Error ->
-    Format.eprintf "syntax error, %a: \n" print_position lexbuf;
-    exit (-1) 
+  | Lex.Error (lb,msg) as e ->
+     Format.eprintf " Lexical error, %a: %s@.@?" print_position lb msg;
+     raise e
+  | Parse_all.Error as e ->
+    Format.eprintf "syntax error, %a: @.@?" print_position lexbuf;
+    raise e 
 
 let parseNoteFile fname =
   let ic = open_in fname in

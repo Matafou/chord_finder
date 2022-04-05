@@ -23,7 +23,7 @@ let to_int n =
   | B -> 11
 ;;
 
-let to_string n =
+let to_string_american n =
   match n with
   | C -> "C"
   | CD -> "C#"
@@ -37,6 +37,22 @@ let to_string n =
   | A -> "A"
   | AD -> "A#"
   | B -> "B"
+;;
+
+let to_string n =
+  match n with
+  | C -> "Do"
+  | CD -> "Do#"
+  | D -> "Ré"
+  | DD -> "Ré#"
+  | E -> "Mi"
+  | F -> "Fa"
+  | FD -> "Fa#"
+  | G -> "Sol"
+  | GD -> "Sol#"
+  | A -> "La"
+  | AD -> "La#"
+  | B -> "Sol"
 ;;
 
 

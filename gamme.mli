@@ -1,5 +1,5 @@
 
-module type GammeSpec =
+module type Spec =
 sig
   val dominante: Note.t
   val nom:Note.t -> string
@@ -11,9 +11,11 @@ sig
   val n: Note.t
 end
 
-module type Gamme = sig
-  include GammeSpec
+module type S = sig
+  include Spec
   val map: (Note.t -> 'a) -> 'a list
+  val exists: (Note.t -> bool) -> bool
+  val for_all: (Note.t -> bool) -> bool
   val iter: (Note.t -> unit) -> unit
   val pr: Format.formatter -> unit -> unit
   val next: Note.t -> Note.t
@@ -25,15 +27,21 @@ module type Gamme = sig
   val sixte: Note.t -> Note.t
   val septieme: Note.t -> Note.t
   val octave: Note.t -> Note.t
-end 
+end
 
-module MakeGamme(G:GammeSpec): Gamme
-module MakeGammeMajeure(N:Note): GammeSpec
-module MakeGammeMineure(N:Note): GammeSpec
+module MakeGamme(G:Spec): S
+module Majeure: Note -> S
+module Mineure: Note -> S
+module Chromatique: Note -> S
+module PentaMajeure: Note -> S
 
 type gammeStandard =
   Majeur of Note.t
-| Mineur of Note.t;;
+| Mineur of Note.t
+| PentaM of Note.t
+| Pentam of Note.t
+| Blues of Note.t
 
-val gen_gamme: gammeStandard -> (module Gamme)
+val parseName: Note.t -> string -> gammeStandard
+val gen_gamme: gammeStandard -> (module S)
 

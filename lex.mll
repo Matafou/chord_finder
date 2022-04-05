@@ -26,7 +26,9 @@ let note_fa = "Fa"|"fa"|"F"
 let note_sol = "Sol"|"sol"|"G"
 let note_la = "La"|"la"|"A"
 let note_si = "Si"|"si"|"B"
-
+let nomGammes = "Blues" | "blues" | "Pentam" | "pentam" | "PentaM" | "pentaM"
+                | "majeur"| "majeure" | "mineur"| "mineure"
+                | "Majeur"| "Majeure" | "Mineur"| "Mineure"
 
 rule next_token = parse
 | "(*"               { comment lexbuf ; next_token lexbuf }
@@ -44,6 +46,7 @@ rule next_token = parse
 | note_la           { LA }
 | note_si           { SI }
 | unsigned_int      {INT (int_of_string (Lexing.lexeme lexbuf))}
+| nomGammes { let g = Lexing.lexeme lexbuf in ID g }
 | eof                { EOF }
 | '\n'               { L.new_line lexbuf; next_token lexbuf }
 | blank +            { next_token lexbuf }

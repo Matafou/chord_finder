@@ -1,7 +1,7 @@
 
 (* type t = { dominante: Note.t; nom:Note.t -> string; ecarts: int list } *)
 
-module type GammeSpec =
+module type Spec =
 sig
   val dominante: Note.t
   val nom:Note.t -> string
@@ -13,28 +13,50 @@ sig
   val n: Note.t
 end
 
-module MakeGammeMajeure(N:Note): GammeSpec = struct
+module MakeGammeMajeure(N:Note): Spec = struct
   let dominante = N.n
-  let nom x = Note.to_string x^"M"
+  let nom x = Note.to_string x^" Majeure"
   let  ecarts = [2;2;1;2;2;2;1]
 end
 
-module MakeGammeMineure(N:Note): GammeSpec = struct
+module MakeGammeMineure(N:Note): Spec = struct
   let dominante = N.n
-  let nom x = Note.to_string x^"m"
+  let nom x = Note.to_string x^" Mineure"
   let ecarts = [2;1;2;2;1;2;2] 
 end
 
-module MakeGammeChromatique(N:Note): GammeSpec = struct
+
+module MakeGammePentaMajeure(N:Note): Spec = struct
+  let dominante = N.n
+  let nom x = Note.to_string x^" PentaM"
+  let ecarts = [2;2;3;2;3] 
+end
+
+
+module MakeGammePentaMineure(N:Note): Spec = struct
+  let dominante = N.n
+  let nom x = Note.to_string x^" Pentam"
+  let ecarts = [3;2;2;3;2] 
+end
+
+module MakeGammeBlues(N:Note): Spec = struct
+  let dominante = N.n
+  let nom x = Note.to_string x^" Blues"
+  let ecarts = [3;2;1;1;3;2] 
+end
+
+module MakeGammeChromatique(N:Note): Spec = struct
   let dominante = N.n
   let nom x = Note.to_string x^" chromatique"
   let ecarts = [1;1;1;1;1;1;1;1;1;1;1;1]
 end
 
 
-module type Gamme = sig
-  include GammeSpec
+module type S = sig
+  include Spec
   val map: (Note.t -> 'a) -> 'a list
+  val exists: (Note.t -> bool) -> bool
+  val for_all: (Note.t -> bool) -> bool
   val iter: (Note.t -> unit) -> unit
   val pr: Format.formatter -> unit -> unit
   val next: Note.t -> Note.t
@@ -55,7 +77,7 @@ let extract_interv_notes g note interv = Pp.prefix interv (Pp.remove_before note
 
 
 
-module MakeGamme(G:GammeSpec): Gamme = struct
+module MakeGamme(G:Spec): S = struct
   include G
   let gamme_ =
     let rec gen dom n l =
@@ -81,8 +103,13 @@ module MakeGamme(G:GammeSpec): Gamme = struct
     fst (Pp.last lnotes)
   let next note = interv note 2
   let map f = List.map f gamme_
+  let exists f = List.exists f gamme_
+  let for_all f = List.for_all f gamme_
   let iter f = List.iter f gamme_
-  let pr fmt () = Format.fprintf fmt "%a@.@?" Note.pr_l (map (fun x -> x))
+  let pr fmt () =
+    let notes = map (fun x -> x) in
+    let notes_octave = notes@[List.hd notes] in
+    Format.fprintf fmt "%a@.@?" Note.pr_l notes_octave
   let seconde note = interv note 2
   let tierce note = interv note 3
   let quarte note = interv note 4
@@ -92,32 +119,60 @@ module MakeGamme(G:GammeSpec): Gamme = struct
   let octave note = interv note 8
 end
 
-module M(N:Note) (MG:Note -> GammeSpec): Gamme = struct
+module M(N:Note) (MG:Note -> Spec): S = struct
   module Spec = MG(N)
   include Spec
   module M = MakeGamme(Spec)
   include M
 end
 
-module Majeure(N:Note): Gamme = M(N)(MakeGammeMajeure)
-module Mineure(N:Note): Gamme = M(N)(MakeGammeMineure)
-module Chromatique(N:Note): Gamme = M(N)(MakeGammeChromatique)
-
-
+module Majeure(N:Note): S = M(N)(MakeGammeMajeure)
+module Mineure(N:Note): S = M(N)(MakeGammeMineure)
+module Chromatique(N:Note): S = M(N)(MakeGammeChromatique)
+module PentaMajeure(N:Note): S = M(N)(MakeGammePentaMajeure)
+module PentaMineure(N:Note): S = M(N)(MakeGammePentaMineure)
+module Blues(N:Note): S = M(N)(MakeGammeBlues)
 
 type gammeStandard =
   Majeur of Note.t
 | Mineur of Note.t
+| PentaM of Note.t
+| Pentam of Note.t
+| Blues of Note.t
 
-let gen_gamme(g:gammeStandard): (module Gamme) =
+let parseName n s =
+  match s with
+  | "blues"  | "Blues" -> Blues n
+  | "pentam" | "Pentam" -> Pentam n
+  | "pentaM" | "PentaM" -> PentaM n
+  | "majeure" | "Majeure"  | "majeur" | "Majeur" -> Majeur n
+  | "mineure" | "Mineure" | "mineur" | "Mineur" -> Mineur n
+  | _ -> raise Not_found
+
+
+let gen_gamme(g:gammeStandard): (module S) =
   match g with
   | Majeur dom ->
      let module Ggg = struct let n = dom end in
-     let module Gg:Gamme = Majeure(Ggg) in
-     (module Gg: Gamme)
-  | Mineur dom -> let module Ggg = struct let n = dom end in
+     let module Gg:S = Majeure(Ggg) in
+     (module Gg: S)
+  | Mineur dom ->
+     let module Ggg = struct let n = dom end in
      let module Gg = Mineure(Ggg) in
-     (module Gg: Gamme)
+     (module Gg: S)
+  | PentaM dom ->
+     let module Ggg = struct let n = dom end in
+     let module Gg = PentaMajeure(Ggg) in
+     (module Gg: S)
+  | Pentam dom ->
+     let module Ggg = struct let n = dom end in
+     let module Gg = PentaMineure(Ggg) in
+     (module Gg: S)
+  | Blues dom ->
+     let module Ggg = struct let n = dom end in
+     let module Gg = Blues(Ggg) in
+     (module Gg: S)
+
 
 
 

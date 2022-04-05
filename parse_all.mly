@@ -8,7 +8,7 @@
 
 (** Formula tokens *)
 %token DIESE BEMOL MAJEUR MINEUR DO RE MI FA SOL LA SI
-/* %token <string> ID OP */
+%token <string> ID
 %token <int> INT
 
 (** unrecognized token *)
@@ -91,6 +91,7 @@ chiffrage:
 gamme_name:
 | n=note MAJEUR { Gamme.Majeur n }
 | n=note MINEUR { Gamme.Mineur n }
+| n=note g=ID { Gamme.parseName n g }
 ;
 
 note_simple:

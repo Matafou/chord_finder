@@ -22,10 +22,8 @@ let rec last l =
 
 (* PRINTING *)
 
+(*T.Black; T.Red; T.Green; T.Yellow; T.Blue; T.Magenta; T.Cyan; T.White; T.Default *)
 module T = ANSITerminal
-let colors =
-  [T.Black; T.Red; T.Green; T.Yellow; T.Blue; T.Magenta; T.Cyan;
-   T.White; T.Default]
 
 let color_to_string = function
   | T.Black -> "black"

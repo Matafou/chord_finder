@@ -30,6 +30,6 @@ let pr fmt (ac:t) = Format.fprintf fmt "%s" ac.name
 
 let pr_fixed_width n fmt (ac:t) =
   let lgth = String.length ac.name in
-  let spaces = String.init (n-lgth) (fun _ -> ' ') in
+  let spaces = String.init (max 0 (n-lgth)) (fun _ -> ' ') in
   Format.fprintf fmt "%s%s" ac.name spaces
 

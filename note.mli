@@ -5,6 +5,7 @@ exception Unknown_Notation of string
 val all_notes: t list
 val to_int: t -> int
 val to_string: t -> string
+val to_string_american: t -> string
 val of_int: int -> t
 val of_string: string -> t
 val pr: Format.formatter -> t -> unit
