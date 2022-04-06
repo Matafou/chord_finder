@@ -1,0 +1,26 @@
+
+
+
+1.    G  D  Bb;
+2.    D  Bb F;
+3.    D  Bb F;
+3,5.  C  Eb 6;
+4.    Eb G  Bb;
+4,5.  Eb G  Bb 5 6;
+5.    Bb D  F;
+6.    D  Bb F;
+7.    D  A  F;
+7,5.  C  Eb  ;
+8.    Eb G  Bb;
+9.    Bb F  D;
+9,5.  F  C  A;
+10.   D  F  A;
+11.   Eb Bb G;
+12.   Eb Bb G;
+12,5. Bb D  F;
+13.   C  G  Eb;
+14.   Bb D  F;
+15.   C  G  Eb;
+16.   D  Bb F;
+ 
+

@@ -29,7 +29,7 @@ end
 module MakeGammePentaMajeure(N:Note): Spec = struct
   let dominante = N.n
   let nom x = Note.to_string x^" PentaM"
-  let ecarts = [2;2;3;2;3] 
+  let ecarts = [2;2;3;2;3]
 end
 
 

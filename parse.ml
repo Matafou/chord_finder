@@ -33,6 +33,15 @@ let parse_chiffrage_with_error lexbuf: Chiffrage.t =
     Format.eprintf "syntax error, %a: @.@?" print_position lexbuf;
     raise e 
 
+let parse_portee_with_error lexbuf: (int*Chiffrage.t list) list =
+  try Parse_all.portee_eof Lex.next_token lexbuf with
+  | Lex.Error (lb,msg) as e ->
+     Format.eprintf " Lexical error, %a: %s@.@?" print_position lb msg;
+     raise e
+  | Parse_all.Error as e ->
+    Format.eprintf "syntax error, %a: @.@?" print_position lexbuf;
+    raise e 
+
 let parseNoteFile fname =
   let ic = open_in fname in
   let lb = Lexing.from_channel ic in

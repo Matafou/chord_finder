@@ -13,6 +13,9 @@ type indic =
 (* Représente une note + des indications *)
 type t = { basse: Note.t ; indics : indic list }
 
+(* TODO: have a map? *)
+type mesure = int*t
+type portee = mesure list
 
 (* How does a note fit in a chord and in a scale/gamme? *)
 type matching_note =
@@ -21,9 +24,15 @@ type matching_note =
   | PresentAlien of Note.t (* NOT in the chord, in the gamme *)
   | AbsentAlien of Note.t (* NOT in the chord, NOT in the gamme *)
 
+val pr: Format.formatter -> t -> unit
 val pr_legend: Format.formatter -> unit -> unit
 val pr_matching: Format.formatter -> matching_note -> unit
 val pr_matchings: Format.formatter -> matching_note list -> unit
+val pr_l_matchings: Format.formatter -> matching_note list list -> unit
+val pr_chord_matchings: Format.formatter -> (Accord.t*matching_note list) -> unit
+val pr_l_chord_matchings: Format.formatter -> (Accord.t*matching_note list) list -> unit
+
+val contain_absentAlien: matching_note list -> bool
 
 (* nombre de notes présentes dans une list de matchings *)
 val count_present: matching_note list -> int

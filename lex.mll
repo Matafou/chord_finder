@@ -37,7 +37,9 @@ rule next_token = parse
 | "b"               { BEMOL }
 | "M"               { MAJEUR }
 | "m"               { MINEUR }
-(* | ","               { COMMA } *)
+| ";"               { PV }
+| ","               { VIRG }
+| "."               { PT }
 | note_do            { DO }
 | note_re            {RE}
 | note_mi           { MI }
@@ -52,6 +54,8 @@ rule next_token = parse
 | blank +            { next_token lexbuf }
 (* | identstart identchar* { ID (get lexbuf)} *)
 (* | integer            { NUM (int_of_string (get lexbuf))} *)
+| "(*"               { comment lexbuf ; next_token lexbuf }
+| "*)"               { raise (Lexing_error "end of comment without matching start") }
 | _ { UNKNOWN }
 
 and comment = parse 

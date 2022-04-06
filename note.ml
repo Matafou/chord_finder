@@ -52,7 +52,7 @@ let to_string n =
   | GD -> "Sol#"
   | A -> "La"
   | AD -> "La#"
-  | B -> "Sol"
+  | B -> "Si"
 ;;
 
 

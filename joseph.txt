@@ -1,0 +1,30 @@
+
+
+1. A 3# E A C#;
+1,5. F 4# 6 D B;  (* 4# = 4 becar *)
+1,7. E 6# G C#;
+2. D A F;
+2,5. Bb 6 E G;
+3. E 6 B;    (* Do7M? x35453 *)
+3,5. E 7 G;
+3,7. A 3# E A C#;
+4. D F A;   (* basse de Fa? Ré/Fa XX3241 *)
+4,5. D F A;
+5. A 3# E A C#;
+5,5. F 4# 6 D B;  (* 4# = 4 becar *)
+6. D A F;
+6,5. Bb 6 E G;
+7. G 3b 6 G Bb E;
+7,5. E 7 G E;
+8. D F A;
+8,5. C# A ;
+9. D F;
+9,5. G 5 G;
+10. A 3# E;
+10,5. F A;
+11. Bb D F;
+11,5. G 3# Bb; (* 3# = 3 becar *)
+12. A 3# C# E;
+12,5. G 3 Bb D ; (* 3# = 3 bemol à cause de bécar avant. *)
+13. E 6# G C#;
+13,5. F 5# A;

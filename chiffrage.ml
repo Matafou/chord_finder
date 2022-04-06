@@ -12,6 +12,10 @@ type indic =
 
 type t = { basse: Note.t ; indics : indic list }
 
+(* TODO: have a map? *)
+type mesure = int*t
+type portee = mesure list
+
 (* A given note was given by the user, how much does it fit in the
    chord and in the gamme? *)
 type matching_note =
@@ -23,6 +27,20 @@ type matching_note =
 
 let count_present (lm:matching_note list):int=
   List.length (List.filter (function | Present _ | PresentAlien _ -> true | _ -> false) lm)
+
+let pr_raw fmt r =
+  match r with
+  | Absolu n -> Format.fprintf fmt "%a" Note.pr n
+  | Relative (_,i) -> Format.fprintf fmt "%d" i
+
+let pr_indic fmt ind =
+    match ind with
+    | Diese r -> Format.fprintf fmt "%a#" pr_raw r
+    | Bemol r -> Format.fprintf fmt "%ab" pr_raw r
+    | Exact r -> Format.fprintf fmt "%a" pr_raw r
+
+let pr fmt (ch:t) =
+  Format.fprintf fmt "%a %a" Note.pr ch.basse (Pp.print_list Pp.brk pr_indic) ch.indics
 
 let pr_legend fmt () =
   Format.fprintf fmt "%s, %s, %s, %s"
@@ -42,6 +60,21 @@ let pr_matching fmt m =
 
 let pr_matchings fmt lm =
   Format.fprintf fmt "@[<h>%a@]" (Pp.print_list Pp.brk pr_matching) lm 
+
+let pr_l_matchings fmt llm =
+  Format.fprintf fmt "@[<v>%a@]" (Pp.print_list Pp.brk pr_matchings) llm 
+
+let pr_chord_matchings fmt (ch,lmtch) =
+  Format.fprintf fmt "@[<h>%d: %a@ %a@]"
+    (count_present lmtch) (Accord.pr_fixed_width 7) ch
+    pr_matchings lmtch
+
+let pr_l_chord_matchings fmt l =
+  Format.fprintf fmt "@[<v>%a@]" (Pp.print_list Pp.brk pr_chord_matchings) l
+
+
+let contain_absentAlien l =
+  List.exists (function | AbsentAlien _ -> true | _ -> false) l
 
 module type S =
 sig
