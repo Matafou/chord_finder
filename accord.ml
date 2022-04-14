@@ -10,6 +10,18 @@ let accord_majeur n = mk (tos n) n [ tierce_majeure n; quinte_juste n ]
 let accord_mineur n = mk (tos n ^ "m") n [ tierce_mineure n; quinte_juste n ]
 let accord_majeur_7m n =
   mk (tos n ^ "7") n [ tierce_majeure n; quinte_juste n ; septieme_mineure n ]
+
+let accord_majeur_6 n =
+  mk (tos n ^ "6") n [ tierce_majeure n; quinte_juste n ; sixte n ]
+let accord_mineur_6m n =
+  mk (tos n ^ "m6") n [ tierce_mineure n; quinte_juste n ; sixte n ]
+
+let accord_diminue n =
+  mk (tos n ^ "dim") n [ tierce_mineure n; quinte_diminuee n ]
+
+let accord_augmente n =
+  mk (tos n ^ "aug") n [ tierce_mineure n; quinte_augmentee n ]
+
 let accord_majeur_7M n =
   mk (tos n ^ "7M") n [ tierce_majeure n; quinte_juste n ; septieme_majeure n ]
 let accord_mineur_7m n =
@@ -17,7 +29,8 @@ let accord_mineur_7m n =
 let accord_mineur_7M n =
   mk (tos n ^  "m7M") n [ tierce_mineure n; quinte_juste n ; septieme_majeure n ]
 
-let all_chord_makers = [ accord_majeur; accord_mineur; accord_majeur_7M; accord_mineur_7m ]
+let all_chord_makers = [ accord_majeur; accord_mineur; accord_majeur_7M; accord_mineur_7m; accord_majeur_6;accord_mineur_6m ;
+                       accord_diminue; accord_augmente ]
 
 let chain_chord_makers l =
   List.flatten (List.map (fun f -> List.map (fun n -> f n) all_notes) l)

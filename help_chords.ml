@@ -27,18 +27,13 @@ let rec ask_gamme () =
 let compute_candidates g chfr limit remove_absent_alien cut all_chords =
   let (module C: Chiffrage.S) = g in
   let l = C.interp chfr in
-  let chords : (int*Accord.t) list = intersect_all all_chords l in
-  let chords_filtered = List.filter (fun (i,_) -> i>=limit) chords in
-  let chords_alone = List.map snd chords_filtered in
-  let matchings:(Accord.t*Chiffrage.matching_note list) list =
-    List.map (fun ch -> ch,C.matching (module C.G) l ch) chords_alone in
-  let matchings_filtered =
-    if remove_absent_alien then
-      List.filter (fun (_,m) -> not (Chiffrage.contain_absentAlien m))
-        matchings
-        else matchings in
-  let best_matchings = try Pp.prefix cut matchings_filtered with _ -> matchings_filtered in
-  best_matchings
+  l
+  |> intersect_all all_chords
+  |> List.filter (fun (i,_) -> i>=limit)
+  |> List.map snd
+  |> List.map (fun ch -> ch,C.matching (module C.G) l ch)
+  |> (fun l -> if remove_absent_alien then List.filter (fun (_,m) -> not (Chiffrage.contain_absentAlien m)) l else l)
+  |> (fun l -> try Pp.prefix cut l with _ -> l)
 
 
 let rec ask_acc_bass g n =
@@ -77,16 +72,17 @@ let main2 () =
   ask_acc_bass (module Chifr) 2;;
 
 
-let iter_lookup_prev modC portee =
+let iter_lookup_prev filter modC portee =
   let all_chords = Accord.chain_chord_makers Accord.all_chord_makers in
   let prev = ref (0) in
   let (module C:Chiffrage.S) = modC in
+  let filtered_portee = List.filter filter portee in
   List.iter 
     (fun (n,l_intra_mesure) ->
       if n <> !prev then Format.printf "mesure %d: @[<v>" n
-         else Format.printf "   %d(bis): @[<v>" n;
+      else Format.printf "   %d(bis): @[<v>" n;
       List.iter (fun chfr ->
-          let cand = compute_candidates (module C) chfr 1 true 7 all_chords in
+          let cand = compute_candidates (module C) chfr 2 true 7 all_chords in
           let l = C.interp chfr in
           Format.printf "(@[<h>%a@]) %a"
             Chiffrage.pr chfr
@@ -95,7 +91,7 @@ let iter_lookup_prev modC portee =
       (if n <> !prev then Format.printf "@.";
       prev:=n)
     )
-    portee;
+    filtered_portee;
          Format.printf "@]"
 ;;  
 
@@ -103,13 +99,18 @@ let usage = "usage: help_chord.exe -g <gamme> -f <file>";;
 
 let file = ref ""
 let gamme = ref ""
+let filter_mesures: int list option ref = ref None
 let set_file s = file := s
 let set_gamme s = gamme := s
-
+let set_filter s =
+  let ls = String.split_on_char ',' s in
+  let l = List.map int_of_string ls in
+  filter_mesures := Some l
 
 let params = [
     ("-f", Arg.String set_file, "set the file");
     ("-g", Arg.String set_gamme, "set la gamme");
+    ("--only", Arg.String set_filter, "affiche seulement les mesures");
   ]
 
 
@@ -130,7 +131,11 @@ let main () =
   let ic = open_in filename in
   let lb = Lexing.from_channel ic in
   let portee = Parse.parse_portee_with_error lb in
-  iter_lookup_prev (module Chifr) portee;
+  let filter_fun (n,_) =
+    match !filter_mesures with
+    | None -> true
+    | Some l -> List.mem n l in
+  iter_lookup_prev filter_fun (module Chifr) portee;
 
   close_in ic;;
 
