@@ -68,7 +68,7 @@ chiffrage_eof:
 chiffrage_complet:
 | n = note
   l=list(chiffrage) {
-    let updated_indics =
+    let updated_indics:Chiffrage.indic list =
       (* l has dummy notes in relative chiffrages replace them by n *)
       List.map Chiffrage.(
         function
@@ -77,7 +77,10 @@ chiffrage_complet:
         | (Exact (Relative (_,i))) -> (Exact (Relative (n,i)))
         | c -> c)
         l in
-    Chiffrage.{basse=n; indics = updated_indics} }
+    (* relatives go in indics, others go in others. *)
+    let chfr, notes = List.partition Chiffrage.is_relative updated_indics in
+    let interp_notes = List.map Chiffrage.interp_absolute notes in
+    Chiffrage.{basse=n; indics = chfr ; others = interp_notes} }
 ;
 
 chiffrage:

@@ -1,13 +1,6 @@
 
 (* intersection of a given a list of notes l and a chord   *)
 
-let intersect l c = List.filter (fun x -> List.mem x l) (Accord.notes_of_chord c)
-
-let count_intersect l (chord:Accord.t) = List.length (intersect l chord)
-
-let intersect_all lchords lnotes  =
-  let unsorted = List.map (fun chord -> (count_intersect lnotes chord,chord)) lchords in
-  List.sort (fun (x,_) (y,_) -> Stdlib.compare y x) unsorted
 
 let pr_candidates fmt (l_notes_chord,l_matchings) =
   Format.fprintf fmt "@[<h>%a@]@;   @[<v>%a@]" (Pp.print_list Pp.brk Note.pr) l_notes_chord
@@ -24,15 +17,29 @@ let rec ask_gamme () =
                    ask_gamme ()
 
 
-let compute_candidates g chfr limit remove_absent_alien cut all_chords =
+let compute_candidatesOLD g chfr limit remove_absent_alien cut all_chords =
   let (module C: Chiffrage.S) = g in
   let l = C.interp chfr in
   l
-  |> intersect_all all_chords
+  |> C.intersect_all all_chords
   |> List.filter (fun (i,_) -> i>=limit)
   |> List.map snd
   |> List.map (fun ch -> ch,C.matching (module C.G) l ch)
-  |> (fun l -> if remove_absent_alien then List.filter (fun (_,m) -> not (Chiffrage.contain_absentAlien m)) l else l)
+  |> (if remove_absent_alien
+      then (List.filter (fun (_,m) -> not (Chiffrage.contain_absentAlien m)))
+      else (fun x -> x))
+  |> (fun l -> try Pp.prefix cut l with _ -> l)
+
+
+let compute_candidates g chfr remove_absent_alien cut all_chords =
+  let (module C: Chiffrage.S) = g in
+  let l  = C.interp chfr in
+  List.sort (C.compare_matching chfr) all_chords
+  |> List.rev 
+  |> List.map (fun ch -> ch,C.matching (module C.G) l ch)
+  |> (if remove_absent_alien
+      then (List.filter (fun (_,m) -> not (Chiffrage.contain_absentAlien m)))
+      else (fun x -> x))
   |> (fun l -> try Pp.prefix cut l with _ -> l)
 
 
@@ -47,7 +54,7 @@ let rec ask_acc_bass g n =
           let chfr:Chiffrage.t = Parse.parseStringChiffrage s in
           let all_chords = Accord.chain_chord_makers Accord.all_chord_makers in
           let matchings:(Accord.t*Chiffrage.matching_note list) list =
-            compute_candidates g chfr n true 6 all_chords in
+            compute_candidates g chfr true 6 all_chords in
           let l = C.interp chfr in
           let () = Format.printf "%a" pr_candidates (l,matchings) in
           ()
@@ -82,7 +89,7 @@ let iter_lookup_prev filter modC portee =
       if n <> !prev then Format.printf "mesure %d: @[<v>" n
       else Format.printf "   %d(bis): @[<v>" n;
       List.iter (fun chfr ->
-          let cand = compute_candidates (module C) chfr 2 true 7 all_chords in
+          let cand = compute_candidates (module C) chfr true 7 all_chords in
           let l = C.interp chfr in
           Format.printf "(@[<h>%a@]) %a"
             Chiffrage.pr chfr

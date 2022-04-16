@@ -11,7 +11,7 @@ type indic =
   | Exact of raw
 
 (* Représente une note + des indications *)
-type t = { basse: Note.t ; indics : indic list }
+type t = { basse: Note.t ; indics : indic list ; others: Note.t list }
 
 (* TODO: have a map? *)
 type mesure = int*t
@@ -33,6 +33,8 @@ val pr_chord_matchings: Format.formatter -> (Accord.t*matching_note list) -> uni
 val pr_l_chord_matchings: Format.formatter -> (Accord.t*matching_note list) list -> unit
 
 val contain_absentAlien: matching_note list -> bool
+val is_relative: indic -> bool
+val interp_absolute: indic -> Note.t
 
 (* nombre de notes présentes dans une list de matchings *)
 val count_present: matching_note list -> int
@@ -42,6 +44,8 @@ sig
   module G: Gamme.S
   val interp: t -> Note.t list
   val matching: (module Gamme.S) -> Note.t list -> Accord.t -> matching_note list
+  val intersect_all: Accord.t list -> Note.t list ->  (int * Accord.t) list
+  val compare_matching: t -> Accord.t -> Accord.t -> int
 end
 
 (* Build a Chiffrage from a Gamme. *)
