@@ -29,8 +29,9 @@ let accord_mineur_7m n =
 let accord_mineur_7M n =
   mk (tos n ^  "m7M") n [ tierce_mineure n; quinte_juste n ; septieme_majeure n ]
 
-let all_chord_makers = [ accord_majeur; accord_mineur; accord_majeur_7M; accord_mineur_7m; accord_majeur_6;accord_mineur_6m ;
-                       accord_diminue; accord_augmente ]
+let all_chord_makers = [ accord_majeur; accord_mineur; accord_majeur_7M;
+                         accord_mineur_7m; accord_majeur_6;accord_mineur_6m ;
+                         accord_diminue; accord_augmente ]
 
 let chain_chord_makers l =
   List.flatten (List.map (fun f -> List.map (fun n -> f n) all_notes) l)

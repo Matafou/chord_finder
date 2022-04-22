@@ -23,6 +23,8 @@ let to_int n =
   | B -> 11
 ;;
 
+let compare a b = Stdlib.compare (to_int a) (to_int b)
+
 let to_string_american n =
   match n with
   | C -> "C"

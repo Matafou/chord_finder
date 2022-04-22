@@ -1,19 +1,71 @@
 (* Les intervales en notation "chiffrage d'accord".
    https://fr.wikipedia.org/wiki/Chiffrage_des_accords *)
 
-type level =
-  | Absolu of Note.t
-  | Relative of (Note.t*int)
-
-type indic =
-  | Diese of level
-  | Bemol of level
-  | Exact of level
+module MapNotes = Map.Make(Note)
 
 (* a note of an indication is mandatory or not *)
 type mandatoriness = Mandatory | Optional
 
-(* Analysing the adequacy of a chord given
+type indic = { note: Note.t ;
+               mandatoriness:mandatoriness ; in_gamme:bool }
+
+(* all_notes is there only to keep the order in witch the notes were given. *)
+type t = { basse: Note.t ;  all_notes: Note.t list; indics : indic MapNotes.t }
+
+
+let union_mandat m1 m2 =
+  match m1,m2 with
+  | Mandatory,_ | _,Mandatory -> Mandatory
+  | _,_ -> Optional
+
+type score = {
+    present_mandatory: Note.t list; (* mandatory notes present in the chord   *)
+    absent_mandatory: Note.t list; (* mandatory notes missing in the chord   *)
+    present_optional: Note.t list; (* optional notes present in the chord *)
+    absent_optional: Note.t list; (* optional notes missing in the chord *)
+    present_other_ok: Note.t list; (* notes in the chord that are
+                                      not suggested but ok with the
+                                      gamme *)
+    present_alien: Note.t list; (* notes in the chord that are not
+                                   suggested AND not in the gamme *)
+  }
+
+
+let count_present (s:score) = List.length s.present_mandatory
+                              + List.length s.present_optional
+
+let contain_absentAlien (s:score) = s.present_alien <> []
+
+
+let categorize s n =
+  let fg,ul =
+    if List.mem n s.present_mandatory then Pp.T.Green,true
+    else if List.mem n s.present_optional then Pp.T.Cyan,false
+    else if List.mem n s.present_other_ok then Pp.T.Default,false
+    else if List.mem n s.present_alien then Pp.T.Magenta,false
+    else assert false in
+  [Pp.T.Foreground fg]@(if ul then [Pp.T.Underlined] else [])
+
+(* [Pp.T.Foreground color] *)
+  
+let compare_score
+      { present_mandatory=pm1; absent_mandatory=_am1; present_optional=po1;
+        absent_optional=_ao1 ; present_other_ok=pok1; present_alien=pa1 }
+      { present_mandatory=pm2; absent_mandatory=_am2; present_optional=po2;
+        absent_optional=_ao2 ; present_other_ok=pok2; present_alien=pa2 } =
+  let cmp l1 l2 = compare (List.length l1) (List.length l2) in
+  let pm = cmp pm1 pm2 in
+  let pa = cmp pa2 pa1 in
+  let po = cmp po1 po2 in
+  let pok = cmp pok2 pok1 in
+  if false then assert false
+  else if pa <> 0 then pa       (* no non-suggested alien note *)
+  else if pm <> 0 then pm
+  else if po <> 0 then po
+  else if pok <> 0 then pok
+  else 0
+
+(* Analysing the adequacy of a given chord wrt
 
    - the gamme we are in
    - the mandatory notes (numeral from continuo basso))
@@ -23,73 +75,137 @@ type mandatoriness = Mandatory | Optional
    - mandatory notes are mandatory, they must all be in the chord
    - other notes present in a chord are given a score wrt 
      + being present in optional note
-     + being in the gamme
-        
-*)
+     + being in the gamme *)
 
-(* a note of a chord is in the gamme or not *)
-type alienness = InGamme | HorsGamme
-
-(* a note (mandatory or not) is present in the chord.  *)
-type presence = Present | Absent
-
-type incomplete_score = { note: Note.t ;
-                          present:presence; }
-
-type chord_note =
-  { note: Note.t ;
-    present:presence;
-    alienness : alienness ;
-    mandatoriness: mandatoriness }
-
-type 'a t = { basse: Note.t ; indics : 'a list }
-
-type raw_indic = indic*mandatoriness
-type indic_in_gamme = indic*mandatoriness*alienness* presence
-
-type raw_t = indic t (raw_indic)
-
-(* TODO: have a map? *)
-type mesure = int*t
-type portee = mesure list
+module type S =
+sig
+  module G: Gamme.S
+  val interp_ast_indic: Note.t -> Ast.indic -> indic
+  val interp_ast: Ast.chiffrage -> t
+  val compute_adequacy: Accord.t -> t -> score
+  val compare_chord: t -> Accord.t -> Accord.t -> int
+end
 
 
+module Make(G:Gamme.S):S =
+struct
+  module G=G
 
-let count_present (lm:matching_note list):int=
-  List.length (List.filter (function | Present _ | _ -> false) lm)
+  (* numerals are mandatory notes, others are optional *)
+  let compute_mandatoriness ast: mandatoriness =
+    match ast.Ast.level with
+    | Absolu _ -> Optional
+    | Relative _ -> Mandatory
 
-let count_absent (lm:matching_note list):int=
-  List.length (List.filter (function | Absent _ | _ -> false) lm)
+  (* An indication in a gamme gives a precise note. *)
+  let interp_ast_indic (basse:Note.t) (i:Ast.indic): indic =
+    let lvl = 
+      match i.level with
+      | Absolu n -> n
+      | Relative (i) -> G.interv basse i in
+    let note = 
+      match i.accident with
+      | Diese -> Note.decale_chrom lvl 1
+      | Bemol -> Note.decale_chrom lvl (-1)
+      | Exact -> lvl in
+    { note = note; mandatoriness=compute_mandatoriness i ; in_gamme = G.mem note }
+
+  let interp_l_ast_indic (basse:Note.t) (l:Ast.indic list) =
+    let start_map =
+      MapNotes.add basse { note=basse; mandatoriness=Mandatory;in_gamme=G.mem basse }
+        MapNotes.empty in
+    List.fold_left
+      (fun acc astindic -> 
+        let indic = interp_ast_indic basse astindic in
+        (* update the mandatoriness of this note *)
+        try let old_indic = MapNotes.find indic.note acc in
+            let new_indic = { old_indic with mandatoriness = 
+                                               union_mandat old_indic.mandatoriness
+                                                 indic.mandatoriness } in
+            MapNotes.add indic.note new_indic acc
+        with Not_found -> MapNotes.add indic.note indic acc)
+      start_map l
 
 
-(* type indication = *)
-(*   | Mandatory of matching_note *)
-(*   | Optional of matching_note *)
-(* let count_mandatory (lm:indication list):int= *)
-(*   List.length (List.filter (function | Mandatory (Present _) | Mandatory (PresentAlien _) -> true | _ -> false) lm) *)
+  let interp_ast (c:Ast.chiffrage): t =
+    let others =
+      c.others
+      |> List.map (interp_ast_indic c.Ast.base)
+      |> List.map (fun x -> x.note) in    
+    let m_indics = interp_l_ast_indic c.base c.others in
+    { basse = c.Ast.base; all_notes=c.base::others; indics = m_indics }
 
-(* let count_indic_present (lm:indication list):int= *)
-(*   List.length (List.filter *)
-(*                  (function *)
-(*                   | Mandatory (Present _) *)
-(*                     | Mandatory (PresentAlien _) *)
-(*                     | Optional (Present _) *)
-(*                     | Optional (PresentAlien _) -> true *)
-(*                   | _ -> false) lm) *)
+  let list_of_mandatory l_indic =
+    let filtered =
+      MapNotes.filter
+        (fun _ -> function{mandatoriness=Mandatory;_} -> true | _ -> false)
+        l_indic in
+    let l = List.of_seq (MapNotes.to_seq filtered) in
+    List.map fst l
+    
 
-let pr_raw fmt r =
-  match r with
-  | Absolu n -> Format.fprintf fmt "%a" Note.pr n
-  | Relative (_,i) -> Format.fprintf fmt "%d" i
+  let list_of_optional l_indic =
+    let filtered =
+      MapNotes.filter
+        (fun _ -> function{mandatoriness=Optional;_} -> true | _ -> false)
+        l_indic in
+    let l = List.of_seq (MapNotes.to_seq filtered) in
+    List.map fst l
+    
 
-let pr_indic fmt ind =
-    match ind with
-    | Diese r -> Format.fprintf fmt "%a#" pr_raw r
-    | Bemol r -> Format.fprintf fmt "%ab" pr_raw r
-    | Exact r -> Format.fprintf fmt "%a" pr_raw r
+
+  let compute_adequacy (chrd:Accord.t) (chfr:t) : score =
+    let open Accord in
+    let l_indic:indic MapNotes.t = chfr.indics in
+    let chrd_notes:Note.t list = chrd.tonique :: chrd.autres in
+    (* initial score, like if the chord was empty *)
+    let init_score = { present_mandatory = [] ;
+                       absent_mandatory = list_of_mandatory l_indic;
+                       present_optional= [];
+                       absent_optional = list_of_optional l_indic;
+                       present_other_ok = []; present_alien=[] } in
+    (* dispatch notes of the chords in corresponding "present" categories *)
+    let score = 
+      List.fold_left
+        (fun acc n ->
+          if List.mem n acc.absent_mandatory then
+            {acc with absent_mandatory = List.filter (fun x -> x<>n) acc.absent_mandatory;
+                      present_mandatory = n :: acc.present_mandatory}
+          else if List.mem n acc.absent_optional then
+            {acc with absent_optional = List.filter (fun x -> x<>n) acc.absent_optional;
+                      present_optional = n :: acc.present_optional}
+          else if G.mem n then
+            {acc with present_other_ok = n :: acc.present_other_ok}
+          else {acc with present_alien = n :: acc.present_alien}
+        )
+        init_score chrd_notes
+    in
+    score
+
+  
+  let rank n l =
+    let rec rk l i =
+      match l with
+      | [] -> raise Not_found
+      | e::_ when e = n -> i
+      | _::l' -> rk l' (i+1) in
+    rk l 0
+
+
+
+  let compare_chord (chfr:t) c1 c2 =
+    let score1 = compute_adequacy c1 chfr in
+    let score2 = compute_adequacy c2 chfr in
+    let cmp = compare_score score1 score2 in
+    if cmp <> 0 then cmp
+    else
+      let all_chords = Accord.chain_chord_makers Accord.all_chord_makers in
+      (* the smalle the best *)
+      Stdlib.compare (rank c2 all_chords) (rank c1 all_chords)
+end
 
 let pr fmt (ch:t) =
-  Format.fprintf fmt "%a %a" Note.pr ch.basse (Pp.print_list Pp.brk pr_indic) ch.indics
+  Format.fprintf fmt "%a" (Pp.print_list Pp.brk Note.pr) ch.all_notes
 
 let pr_legend fmt () =
   Format.fprintf fmt "%s, %s, %s, %s"
@@ -98,131 +214,24 @@ let pr_legend fmt () =
     (Pp.str [Pp.T.Foreground Pp.T.Default] "NO match & gamme")
     (Pp.str [Pp.T.Foreground Pp.T.Yellow] "NO match & HORS gamme")
 
-let pr_matching fmt m =
-  let n,color =
-    match m with
-    | Present n -> n,Pp.T.Green
-    | Absent n -> n,Pp.T.Default
-    | PresentAlien n -> n,Pp.T.Cyan
-    | AbsentAlien n -> n,Pp.T.Yellow in
-  Format.fprintf fmt "%s" (Pp.str [Pp.T.Foreground color] (Note.to_string n))
+let pr_matching (s:score) fmt (n:Note.t) =
+  let style = categorize s n in
+  Format.fprintf fmt "%s" (Pp.str style (Note.to_string n))
 
-let pr_matchings fmt lm =
-  Format.fprintf fmt "@[<h>%a@]" (Pp.print_list Pp.brk pr_matching) lm 
+let pr_matchings fmt ((ch,s):Accord.t*score) =
+  let l = ch.tonique :: ch.autres in 
+  Format.fprintf fmt "@[<h>%a@]" (Pp.print_list Pp.brk (pr_matching s)) l
 
 let pr_l_matchings fmt llm =
   Format.fprintf fmt "@[<v>%a@]" (Pp.print_list Pp.brk pr_matchings) llm 
 
-let pr_chord_matchings fmt (ch,lmtch) =
+
+
+let pr_chord_score fmt ((ch,lmtch):Accord.t*score) =
   Format.fprintf fmt "@[<h>%d: %a@ %a@]"
     (count_present lmtch) (Accord.pr_fixed_width 7) ch
-    pr_matchings lmtch
+    pr_matchings (ch,lmtch)
 
-let pr_l_chord_matchings fmt l =
-  Format.fprintf fmt "@[<v>%a@]" (Pp.print_list Pp.brk pr_chord_matchings) l
+let pr_l_chord_score fmt l =
+  Format.fprintf fmt "@[<v>%a@]" (Pp.print_list Pp.brk pr_chord_score) l
 
-let is_relative x =
-  match x with
-  | (Diese (Relative (_,_))) | (Bemol (Relative (_,_))) | (Exact (Relative (_,_)))
-    -> true
-  | _ -> false
-
-let contain_absentAlien l =
-  List.exists (function | AbsentAlien _ -> true | _ -> false) l
-
-let interp_absolute i =
-  let interp_raw r =
-    match r with
-    | Absolu n -> n
-    | Relative (_,_) -> failwith "Illegal argument" in
-  match i with
-  | Diese r -> Note.decale_chrom (interp_raw r) 1
-  | Bemol r -> Note.decale_chrom (interp_raw r) (-1)
-  | Exact r -> (interp_raw r)
-
-module type S =
-sig
-  module G: Gamme.S
-  val interp: t -> Note.t list
-  val matching: Note.t list -> Accord.t -> matching_note list
-  val intersect_all: Accord.t list ->  Note.t list -> (int * Accord.t) list
-  val compare_matching: t -> Accord.t -> Accord.t -> int
-end
-
-module Make(G:Gamme.S):S = struct 
-  module G=G
-  let interv = G.interv
-  let interp_raw_indic r =
-    match r with
-    | Absolu n -> n
-    | Relative (n,i) -> interv n i
-
-  let interp_indic i =
-    match i with
-    | Diese r -> Note.decale_chrom (interp_raw_indic r) 1
-    | Bemol r -> Note.decale_chrom (interp_raw_indic r) (-1)
-    | Exact r -> (interp_raw_indic r)
-
-  let interp chfr =
-    chfr.basse::List.map (fun indic -> interp_indic indic) chfr.indics
-    @ chfr.others
-
-  let interp_mandatory chfr =
-    chfr.basse::List.map (fun indic -> interp_indic indic) chfr.indics
-    @ chfr.others
-
-  let decide_matching is_given is_in_gamme (n:Note.t): matching_note =  
-    match is_given n, is_in_gamme n with
-    | true , true -> Present n
-    | true , false -> PresentAlien n
-    | false , true -> Absent n
-    | false , false -> AbsentAlien n
-
-  let matching (lnotes:Note.t list) (ch:Accord.t): matching_note list =
-    let module G:Gamme.S = G in
-    let is_given n = List.mem n lnotes  in
-    let is_in_g n = G.exists (fun x -> x = n) in
-    let test = decide_matching is_given is_in_g in
-    List.map test (Accord.notes_of_chord ch)
-
-
-  let intersect l c = List.filter (fun x -> List.mem x l) (Accord.notes_of_chord c)
-  let count_intersect l (chord:Accord.t) = List.length (intersect l chord)
-
-  (* compare first on mandatory notes only, then with eveything *)
-  let compare_matching (chfr:t) (ch1:Accord.t) (ch2:Accord.t) =
-    let lmandat = interp_mandatory chfr in
-    let lall = interp chfr in
-    let cmp = Stdlib.compare (count_intersect lmandat ch1) (count_intersect lmandat ch2) in
-    if cmp<>0 then cmp
-    else
-      let cmp2 = Stdlib.compare (count_absent (matching lmandat ch2) (count_absent lmandat ch1)  in
-      if cmp2 <> 0 then cmp2
-      else Stdlib.compare (count_intersect lall ch1) (count_intersect lall ch2)
-
-  let intersect_all lchords lnotes  =
-    let unsorted = List.map (fun chord -> (count_intersect lnotes chord,chord)) lchords in
-    List.sort (fun (x,_) (y,_) -> Stdlib.compare y x) unsorted
-
-
-  (* let matching_opt (module G:Gamme.S) (lnotes:Note.t list) (lnotes_opt:Note.t list) (ch:Accord.t): matching_note list = *)
-  (*   let module G:Gamme.S = G in *)
-  (*   (\* let is_given n = List.mem n (lnotes@lnotes_opt)  in *\) *)
-  (*   (\* let is_opt n = List.mem n lnotes_opt  in *\) *)
-  (*   let is_mandat n = List.mem n lnotes  in *)
-  (*   let is_in_g n = G.exists (fun x -> x = n) in *)
-  (*   let test = decide_matching is_mandat is_in_g in *)
-  (*   let all = List.map test (Accord.notes_of_chord ch) in *)
-  (*   List.sort (fun x y -> count_present x - count_present y) all *)
-    
-
-
-
-  (* let best_matchings (module G:Gamme.S)(chfr:t) (ch:Accord.t): matching_note list =  *)
-  (*   let mandatory = interp chfr in *)
-  (*   let optional = chfr.others in *)
-  (*   matching_opt (module G) mandatory optional ch  *)
-
-
-
-end

@@ -19,8 +19,8 @@
 /* %start <Accord.t> accord */
 %start <Note.t list> note_list
 %start <Gamme.gammeStandard> gamme_name_eof
-%start <Chiffrage.t> chiffrage_eof
-%start <(int*Chiffrage.t list) list> portee_eof
+%start <Ast.chiffrage> chiffrage_eof
+%start <(int*Ast.chiffrage) list> portee_eof
 %%
 (* Generic lists with separator and an optional final separator.
    See http://gallium.inria.fr/blog/lr-lists/ for explanations. *)
@@ -67,29 +67,16 @@ chiffrage_eof:
 ;
 chiffrage_complet:
 | n = note
-  l=list(chiffrage) {
-    let updated_indics:Chiffrage.indic list =
-      (* l has dummy notes in relative chiffrages replace them by n *)
-      List.map Chiffrage.(
-        function
-        | (Diese (Relative (_,i))) -> (Diese (Relative (n,i)))
-        | (Bemol (Relative (_,i))) -> (Bemol (Relative (n,i)))
-        | (Exact (Relative (_,i))) -> (Exact (Relative (n,i)))
-        | c -> c)
-        l in
-    (* relatives go in indics, others go in others. *)
-    let chfr, notes = List.partition Chiffrage.is_relative updated_indics in
-    let interp_notes = List.map Chiffrage.interp_absolute notes in
-    Chiffrage.{basse=n; indics = chfr ; others = interp_notes} }
+  l=list(chiffrage) { { Ast.base = n; Ast.others = l } }
 ;
 
 chiffrage:
-| n = note_simple { Chiffrage.(Exact (Absolu n)) }
-| n = note_simple DIESE { Chiffrage.(Diese (Absolu n)) }
-| n = note_simple BEMOL { Chiffrage.(Bemol (Absolu n)) }
-| i = INT DIESE {let dummy_note = Note.C in Chiffrage.(Diese (Relative (dummy_note,i)))}
-| i = INT BEMOL {let dummy_note = Note.C in Chiffrage.(Bemol (Relative (dummy_note,i)))}
-| i = INT {let dummy_note = Note.C in Chiffrage.(Exact (Relative (dummy_note,i)))}
+| n = note_simple { Ast.{accident = Exact; level = Absolu n} }
+| n = note_simple DIESE { Ast.{ accident = Diese; level = Absolu n } }
+| n = note_simple BEMOL { Ast.{ accident=Bemol; level = Absolu n} }
+| i = INT DIESE { Ast.{ accident=Diese; level = Relative (i) }}
+| i = INT BEMOL { Ast.{ accident = Bemol; level = Relative (i)} }
+| i = INT {Ast.{ accident = Exact; level = Relative (i) } }
 ;
 
 gamme_name:
@@ -117,8 +104,8 @@ portee:
   | m = mesure p = portee {m::p}
 ;
 mesure:
-  | n = mes_num c=chiffrage_complet PV { (fst n,[c]) }
-  | n = mes_num c1=chiffrage_complet VIRG c2=chiffrage_complet PV { (fst n, [c1;c2]) }
+  | n = mes_num c=chiffrage_complet PV { (fst n,c) }
+  /* | n = mes_num c1=chiffrage_complet VIRG c2=chiffrage_complet PV { (fst n, [c1;c2]) } */
 ;
 
 mes_num:

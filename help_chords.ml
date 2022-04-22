@@ -1,10 +1,23 @@
 
 (* intersection of a given a list of notes l and a chord   *)
 
-
-let pr_candidates fmt (l_notes_chord,l_matchings) =
+(*
+let pr_candidates modC fmt ((chfr,l_matchings):Chiffrage.t*bool list) =
+  let module C:Chiffrage.S = modC in
+  let l_notes_chord = chfr.all
+  let pseudo_chord = Accord.{ name="dummychord" ; tonique = List.hd l_notes_chord ;
+                              autres = List.tl l_notes_chord} in
+  let pseudo_score = C.compute_adequacy   
   Format.fprintf fmt "@[<h>%a@]@;   @[<v>%a@]" (Pp.print_list Pp.brk Note.pr) l_notes_chord
-               Chiffrage.pr_l_chord_matchings l_matchings
+               Chiffrage.pr_l_chord_score l_matchings
+*)
+
+let pr_candidates fmt ((pseudo_score,l_matchings)
+                       :(Accord.t*Chiffrage.score)*((Accord.t*Chiffrage.score) list)) =
+  Format.fprintf fmt "@[<h>%a@]@;   @[<v>%a@]" 
+    Chiffrage.pr_matchings pseudo_score
+    (* (Pp.print_list Pp.brk Note.pr) l_notes_chord *)
+               Chiffrage.pr_l_chord_score l_matchings
 
 let rec ask_gamme () =
   let () = Format.printf "Quelle gamme (\"ex: C#M, C # m, Sib pentaM, Ablues,...\") @?" in
@@ -17,33 +30,19 @@ let rec ask_gamme () =
                    ask_gamme ()
 
 
-let compute_candidatesOLD g chfr limit remove_absent_alien cut all_chords =
+let compute_candidates g (chfr:Chiffrage.t) remove_absent_alien cut all_chords =
   let (module C: Chiffrage.S) = g in
-  let l = C.interp chfr in
-  l
-  |> C.intersect_all all_chords
-  |> List.filter (fun (i,_) -> i>=limit)
-  |> List.map snd
-  |> List.map (fun ch -> ch,C.matching (module C.G) l ch)
-  |> (if remove_absent_alien
-      then (List.filter (fun (_,m) -> not (Chiffrage.contain_absentAlien m)))
-      else (fun x -> x))
-  |> (fun l -> try Pp.prefix cut l with _ -> l)
-
-
-let compute_candidates g chfr remove_absent_alien cut all_chords =
-  let (module C: Chiffrage.S) = g in
-  let l  = C.interp chfr in
-  List.sort (C.compare_matching chfr) all_chords
+  List.sort (C.compare_chord chfr) all_chords
   |> List.rev 
-  |> List.map (fun ch -> ch,C.matching (module C.G) l ch)
-  |> (if remove_absent_alien
+  |> List.map (fun ch -> ch,C.compute_adequacy ch chfr)
+  |> (if false && remove_absent_alien
       then (List.filter (fun (_,m) -> not (Chiffrage.contain_absentAlien m)))
       else (fun x -> x))
   |> (fun l -> try Pp.prefix cut l with _ -> l)
 
 
 let rec ask_acc_bass g n =
+  let all_chords = Accord.chain_chord_makers Accord.all_chord_makers in
   try
     let s = read_line() in
     if s = "" then ask_acc_bass g n
@@ -51,12 +50,14 @@ let rec ask_acc_bass g n =
       let () =
         try 
           let (module C: Chiffrage.S) = g in
-          let chfr:Chiffrage.t = Parse.parseStringChiffrage s in
-          let all_chords = Accord.chain_chord_makers Accord.all_chord_makers in
-          let matchings:(Accord.t*Chiffrage.matching_note list) list =
-            compute_candidates g chfr true 6 all_chords in
-          let l = C.interp chfr in
-          let () = Format.printf "%a" pr_candidates (l,matchings) in
+          let ast_chfr:Ast.chiffrage = Parse.parseStringChiffrage s in
+          let chfr:Chiffrage.t = C.interp_ast ast_chfr in
+          let pseudo_chord = Accord.{name=""; tonique = ast_chfr.base ;
+                                     autres = List.tl chfr.all_notes} in
+          let pseudo_score = C.compute_adequacy pseudo_chord chfr in 
+          let matchings:(Accord.t*Chiffrage.score) list =
+            compute_candidates g chfr true 5 all_chords in
+          let () = Format.printf "%a" pr_candidates ((pseudo_chord,pseudo_score),matchings) in
           ()
         with Note.Unknown_Notation s -> print_string ("Unknown notation \""^s^"\"\n") in
       Format.printf "@.**********************@.@?";
@@ -79,27 +80,28 @@ let main2 () =
   ask_acc_bass (module Chifr) 2;;
 
 
-let iter_lookup_prev filter modC portee =
+let iter_lookup_prev num_sugg filter modC (portee:(int * Ast.chiffrage) list) =
   let all_chords = Accord.chain_chord_makers Accord.all_chord_makers in
   let prev = ref (0) in
   let (module C:Chiffrage.S) = modC in
   let filtered_portee = List.filter filter portee in
   List.iter 
-    (fun (n,l_intra_mesure) ->
+    (fun (n,ast_chfr) ->
       if n <> !prev then Format.printf "mesure %d: @[<v>" n
       else Format.printf "   %d(bis): @[<v>" n;
-      List.iter (fun chfr ->
-          let cand = compute_candidates (module C) chfr true 7 all_chords in
-          let l = C.interp chfr in
-          Format.printf "(@[<h>%a@]) %a"
-            Chiffrage.pr chfr
-            pr_candidates (l,cand)) l_intra_mesure;
+      let chfr = C.interp_ast ast_chfr in
+      let pseudo_chord = Accord.{name=""; tonique = ast_chfr.base ;
+                                 autres = List.tl chfr.all_notes} in
+      let pseudo_score = C.compute_adequacy pseudo_chord chfr in 
+      let cand = compute_candidates modC chfr true num_sugg all_chords in
+      Format.printf "(@[<h>%a@]) %a" Ast.pr_ast_chiffrage ast_chfr
+        pr_candidates ((pseudo_chord,pseudo_score),cand);
       Format.printf "@]@,";
-      (if n <> !prev then Format.printf "@.";
+      (Format.printf "@.";
       prev:=n)
     )
     filtered_portee;
-         Format.printf "@]"
+  Format.printf "@]"
 ;;  
 
 let usage = "usage: help_chord.exe -g <gamme> -f <file>";;
@@ -142,7 +144,7 @@ let main () =
     match !filter_mesures with
     | None -> true
     | Some l -> List.mem n l in
-  iter_lookup_prev filter_fun (module Chifr) portee;
+  iter_lookup_prev 2 filter_fun (module Chifr) portee;
 
   close_in ic;;
 

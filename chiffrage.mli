@@ -1,51 +1,38 @@
+(* Parsing du chiffrage de basse continue. *)
 
-(* Parsing du chiffrage de basse continue. Indépendant de la gamme voulue. *)
+module MapNotes: Map.S
 
-type raw =
-  | Absolu of Note.t
-  | Relative of (Note.t*int)
+(* a note of an indication is mandatory or not *)
+type mandatoriness = Mandatory | Optional
 
-type indic =
-  | Diese of raw
-  | Bemol of raw
-  | Exact of raw
+type indic = { note: Note.t ; mandatoriness:mandatoriness ; in_gamme:bool }
 
-(* Représente une note + des indications *)
-type t = { basse: Note.t ; indics : indic list ; others: Note.t list }
+(* all_notes is there only to keep the order in witch the notes were given. *)
+type t = { basse: Note.t ;  all_notes: Note.t list; indics : indic MapNotes.t }
 
-(* TODO: have a map? *)
-type mesure = int*t
-type portee = mesure list
-
-(* How does a note fit in a chord and in a scale/gamme? *)
-type matching_note =
-  | Present of Note.t (* in the chord and in the gamme *)
-  | Absent of Note.t (* in the chord, NOT in the gamme *)
-  | PresentAlien of Note.t (* NOT in the chord, in the gamme *)
-  | AbsentAlien of Note.t (* NOT in the chord, NOT in the gamme *)
+type score
 
 val pr: Format.formatter -> t -> unit
 val pr_legend: Format.formatter -> unit -> unit
-val pr_matching: Format.formatter -> matching_note -> unit
-val pr_matchings: Format.formatter -> matching_note list -> unit
-val pr_l_matchings: Format.formatter -> matching_note list list -> unit
-val pr_chord_matchings: Format.formatter -> (Accord.t*matching_note list) -> unit
-val pr_l_chord_matchings: Format.formatter -> (Accord.t*matching_note list) list -> unit
+val pr_matching: score -> Format.formatter -> Note.t -> unit
+val pr_matchings: Format.formatter -> Accord.t*score -> unit
+val pr_l_matchings: Format.formatter -> (Accord.t*score) list -> unit
+val pr_chord_score: Format.formatter -> (Accord.t*score) -> unit
+val pr_l_chord_score: Format.formatter -> (Accord.t*score) list -> unit
 
-val contain_absentAlien: matching_note list -> bool
-val is_relative: indic -> bool
-val interp_absolute: indic -> Note.t
+val compare_score: score -> score -> int
 
 (* nombre de notes présentes dans une list de matchings *)
-val count_present: matching_note list -> int
+val count_present: score -> int
+val contain_absentAlien: score -> bool
 
 module type S =
 sig
   module G: Gamme.S
-  val interp: t -> Note.t list
-  val matching: (module Gamme.S) -> Note.t list -> Accord.t -> matching_note list
-  val intersect_all: Accord.t list -> Note.t list ->  (int * Accord.t) list
-  val compare_matching: t -> Accord.t -> Accord.t -> int
+  val interp_ast_indic: Note.t -> Ast.indic -> indic
+  val interp_ast: Ast.chiffrage -> t
+  val compute_adequacy: Accord.t -> t -> score
+  val compare_chord: t -> Accord.t -> Accord.t -> int
 end
 
 (* Build a Chiffrage from a Gamme. *)

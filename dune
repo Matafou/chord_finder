@@ -1,6 +1,6 @@
 (executable
  (libraries unix ANSITerminal menhirLib)
- (modules pp accord chiffrage note gamme help_chords lex parse_all parse)
+ (modules pp accord chiffrage note ast  gamme help_chords lex parse_all parse)
  (name help_chords))
 
 ;; parse.ml + parse.mli

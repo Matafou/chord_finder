@@ -15,6 +15,7 @@ module type S = sig
   include Spec
   val map: (Note.t -> 'a) -> 'a list
   val exists: (Note.t -> bool) -> bool
+  val mem: Note.t -> bool
   val for_all: (Note.t -> bool) -> bool
   val iter: (Note.t -> unit) -> unit
   val pr: Format.formatter -> unit -> unit

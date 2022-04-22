@@ -56,6 +56,7 @@ module type S = sig
   include Spec
   val map: (Note.t -> 'a) -> 'a list
   val exists: (Note.t -> bool) -> bool
+  val mem: Note.t -> bool
   val for_all: (Note.t -> bool) -> bool
   val iter: (Note.t -> unit) -> unit
   val pr: Format.formatter -> unit -> unit
@@ -104,6 +105,7 @@ module MakeGamme(G:Spec): S = struct
   let next note = interv note 2
   let map f = List.map f gamme_
   let exists f = List.exists f gamme_
+  let mem n = List.exists (fun x -> x=n) gamme_
   let for_all f = List.for_all f gamme_
   let iter f = List.iter f gamme_
   let pr fmt () =

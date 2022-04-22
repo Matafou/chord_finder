@@ -2,6 +2,8 @@ type t = A | AD | B | C | CD | D | DD | E | F | FD | G | GD;;
 
 exception Unknown_Notation of string
 
+val compare: t -> t -> int
+
 val all_notes: t list
 val to_int: t -> int
 val to_string: t -> string
