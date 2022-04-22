@@ -40,6 +40,7 @@ rule next_token = parse
 | ";"               { PV }
 | ","               { VIRG }
 | "."               { PT }
+| "gamme"               { GAMME }
 | note_do            { DO }
 | note_re            {RE}
 | note_mi           { MI }

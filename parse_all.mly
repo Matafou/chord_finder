@@ -7,7 +7,7 @@
 %token EOF
 
 (** Formula tokens *)
-%token DIESE BEMOL MAJEUR MINEUR DO RE MI FA SOL LA SI PT VIRG PV
+%token DIESE BEMOL MAJEUR MINEUR DO RE MI FA SOL LA SI PT VIRG PV GAMME
 %token <string> ID
 %token <int> INT
 
@@ -20,7 +20,7 @@
 %start <Note.t list> note_list
 %start <Gamme.gammeStandard> gamme_name_eof
 %start <Ast.chiffrage> chiffrage_eof
-%start <(int*Ast.chiffrage) list> portee_eof
+%start <Gamme.gammeStandard option *(int*Ast.chiffrage) list> portee_eof
 %%
 (* Generic lists with separator and an optional final separator.
    See http://gallium.inria.fr/blog/lr-lists/ for explanations. *)
@@ -65,6 +65,7 @@ note:
 chiffrage_eof:
 | c=chiffrage_complet EOF { c }
 ;
+
 chiffrage_complet:
 | n = note
   l=list(chiffrage) { { Ast.base = n; Ast.others = l } }
@@ -96,7 +97,8 @@ note_simple:
 ;
 
 portee_eof:
-p=portee EOF {p}
+| GAMME g=gamme_name PV p=portee EOF { Some g,p }
+| p=portee EOF {None , p}
 ;
 
 portee:

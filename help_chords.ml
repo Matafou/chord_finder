@@ -50,7 +50,7 @@ let rec ask_acc_bass g n =
       let () =
         try 
           let (module C: Chiffrage.S) = g in
-          let ast_chfr:Ast.chiffrage = Parse.parseStringChiffrage s in
+          let ast_chfr = Parse.parseStringChiffrage s in
           let chfr:Chiffrage.t = C.interp_ast ast_chfr in
           let pseudo_chord = Accord.{name=""; tonique = ast_chfr.base ;
                                      autres = List.tl chfr.all_notes} in
@@ -109,42 +109,52 @@ let usage = "usage: help_chord.exe -g <gamme> -f <file>";;
 let file = ref ""
 let gamme = ref ""
 let filter_mesures: int list option ref = ref None
+let truncate = ref 5
+
 let set_file s = file := s
 let set_gamme s = gamme := s
 let set_filter s =
   let ls = String.split_on_char ',' s in
   let l = List.map int_of_string ls in
   filter_mesures := Some l
+let set_truncate n = truncate := n
 
 let params = [
     ("-f", Arg.String set_file, "set the file");
     ("-g", Arg.String set_gamme, "set la gamme");
+    ("--truncate", Arg.Int set_truncate, "set the number of suggestion per chiffrage.");
     ("--only", Arg.String set_filter, "affiche seulement les mesures");
   ]
 
 
 let main () =
   let _ = Arg.parse params (fun _ -> ()) usage in
+  let filename = !file in
+  let ic = open_in filename in
+  let lb = Lexing.from_channel ic in
+  let gamme_opt,portee = Parse.parse_portee_with_error lb in
+  (* -g superceedes the "gamme foo;" commande in the file. If none is
+     given, then ask the user. *)
   let g:Gamme.gammeStandard =
     if !gamme <> "" then
-      (try Parse.parseStringGamme !gamme
-       with Not_found | Lex.Lexing_error _ | Parse_all.Error ->
-                         let () = Format.printf "Don't understand \"%s\"@.@?" !gamme in
-                         exit (1))
-    else ask_gamme () in
+         (try Parse.parseStringGamme !gamme
+          with Not_found |
+               Lex.Lexing_error _ | Parse_all.Error ->
+                let () = Format.printf "Don't understand \"%s\"@.@?" !gamme in
+                exit (1))
+    else
+      match gamme_opt with
+      | None -> ask_gamme ()
+      | Some g -> g in
   let gamme = Gamme.gen_gamme g in
   let (module G) = gamme in
   Format.printf "Gamme de %s: @[%a@]@?" (G.nom G.dominante) G.pr ();
   let module Chifr:Chiffrage.S = Chiffrage.Make(G) in
-  let filename = !file in
-  let ic = open_in filename in
-  let lb = Lexing.from_channel ic in
-  let portee = Parse.parse_portee_with_error lb in
   let filter_fun (n,_) =
     match !filter_mesures with
     | None -> true
     | Some l -> List.mem n l in
-  iter_lookup_prev 2 filter_fun (module Chifr) portee;
+  iter_lookup_prev !truncate filter_fun (module Chifr) portee;
 
   close_in ic;;
 

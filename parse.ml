@@ -33,7 +33,7 @@ let parse_chiffrage_with_error lexbuf: Ast.chiffrage =
     Format.eprintf "syntax error, %a: @.@?" print_position lexbuf;
     raise e 
 
-let parse_portee_with_error lexbuf: (int*Ast.chiffrage) list =
+let parse_portee_with_error lexbuf: Gamme.gammeStandard option*(int*Ast.chiffrage) list =
   try Parse_all.portee_eof Lex.next_token lexbuf with
   | Lex.Error (lb,msg) as e ->
      Format.eprintf " Lexical error, %a: %s@.@?" print_position lb msg;
