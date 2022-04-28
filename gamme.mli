@@ -32,13 +32,17 @@ end
 
 module MakeGamme(G:Spec): S
 module Majeure: Note -> S
-module Mineure: Note -> S
+module MineureMelodique: Note -> S
+module MineureHarmonique: Note -> S
+module MineureNaturelle: Note -> S
 module Chromatique: Note -> S
 module PentaMajeure: Note -> S
 
 type gammeStandard =
   Majeur of Note.t
-| Mineur of Note.t
+| MineurMel of Note.t
+| MineurHarm of Note.t
+| MineurNat of Note.t (* gamme mineure éolienne ou mode eolien de la majeure *)
 | PentaM of Note.t
 | Pentam of Note.t
 | Blues of Note.t

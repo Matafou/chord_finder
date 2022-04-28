@@ -36,13 +36,17 @@ let count_present (s:score) = List.length s.present_mandatory
 
 let contain_absentAlien (s:score) = s.present_alien <> []
 
+let col_pres_mandat = Pp.T.Green
+let col_pres_opt = Pp.T.Cyan
+let col_pres_otherok = Pp.T.Default
+let col_pres_alien = Pp.T.Magenta
 
 let categorize s n =
   let fg,ul =
-    if List.mem n s.present_mandatory then Pp.T.Green,true
-    else if List.mem n s.present_optional then Pp.T.Cyan,false
-    else if List.mem n s.present_other_ok then Pp.T.Default,false
-    else if List.mem n s.present_alien then Pp.T.Magenta,false
+    if List.mem n s.present_mandatory then col_pres_mandat,true
+    else if List.mem n s.present_optional then col_pres_opt,false
+    else if List.mem n s.present_other_ok then col_pres_otherok,false
+    else if List.mem n s.present_alien then col_pres_alien,false
     else assert false in
   [Pp.T.Foreground fg]@(if ul then [Pp.T.Underlined] else [])
 
@@ -208,11 +212,11 @@ let pr fmt (ch:t) =
   Format.fprintf fmt "%a" (Pp.print_list Pp.brk Note.pr) ch.all_notes
 
 let pr_legend fmt () =
-  Format.fprintf fmt "%s, %s, %s, %s"
-    (Pp.str [Pp.T.Foreground Pp.T.Green] "match & gamme")
-    (Pp.str [Pp.T.Foreground Pp.T.Cyan] "match & HORS gamme")
-    (Pp.str [Pp.T.Foreground Pp.T.Default] "NO match & gamme")
-    (Pp.str [Pp.T.Foreground Pp.T.Yellow] "NO match & HORS gamme")
+  Format.fprintf fmt "@[<v>%s@,%s@,%s@,%s@]"
+    (Pp.str [Pp.T.Foreground col_pres_mandat] "mandatory & present in the chord")
+    (Pp.str [Pp.T.Foreground col_pres_opt] "optional and present in the chord & HORS gamme")
+    (Pp.str [Pp.T.Foreground col_pres_otherok] "absent but compatible & present in the chord")
+    (Pp.str [Pp.T.Foreground col_pres_alien] "Alien & present in the chord")
 
 let pr_matching (s:score) fmt (n:Note.t) =
   let style = categorize s n in

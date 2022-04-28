@@ -27,16 +27,19 @@ let note_sol = "Sol"|"sol"|"G"
 let note_la = "La"|"la"|"A"
 let note_si = "Si"|"si"|"B"
 let nomGammes = "Blues" | "blues" | "Pentam" | "pentam" | "PentaM" | "pentaM"
-                | "majeur"| "majeure" | "mineur"| "mineure"
-                | "Majeur"| "Majeure" | "Mineur"| "Mineure"
-
+                | "majeur"| "majeure" | "Majeur"| "Majeure"
+                | "mineureharm" | "MineureHarm" | "mineurharm" | "MineurHarm"
+                | "mineuremel" | "MineureMel" | "mineurmel" | "MineurMel"
+                | "mineurenat" | "MineureNat" | "mineurnat" | "MineurNat"
 rule next_token = parse
 | "(*"               { comment lexbuf ; next_token lexbuf }
 | "*)"               { raise (Lexing_error "end of comment without matching start") }
 | "#"               { DIESE }
 | "b"               { BEMOL }
 | "M"               { MAJEUR }
-| "m"               { MINEUR }
+| "mh"               { MINEURHARM }
+| "mm"               { MINEURMEL }
+| "mn"               { MINEURNAT }
 | ";"               { PV }
 | ","               { VIRG }
 | "."               { PT }

@@ -19,7 +19,34 @@ module MakeGammeMajeure(N:Note): Spec = struct
   let  ecarts = [2;2;1;2;2;2;1]
 end
 
-module MakeGammeMineure(N:Note): Spec = struct
+(*
+  Leçon de solfège.
+   Toutes les gamme mineures (harmonique, mélodique ou naturelle) ont
+   la même armure, mais on aura une altération accidentelle au cours
+   du morceau.
+ - naturelle: pas d'altération
+ - mineur harmonique: la septième est majeure. (exemple Mimh = ré#)
+ - mineure mélodique ascendante: 6e et 7e degré augmentés (ex: mimm = do# + ré#)
+ - mineure mélodique descendante: elle est identique à la mineure naturelle. *)
+
+
+module MakeGammeMineureMelodique(N:Note): Spec = struct
+  let dominante = N.n
+  let nom x = Note.to_string x^" Mineure (Mélodique)"
+  let ecarts = [2;1;2;2;2;2;1] 
+end
+
+module MakeGammeMineureHarmonique(N:Note): Spec = struct
+  let dominante = N.n
+  let nom x = Note.to_string x^" Mineure (harmonique)"
+  let ecarts = [2;1;2;2;1;3;1] 
+end
+
+(* Ceci est le "mode" éolien de la gamme majeure, qu'on appelle la
+   gamme mineure naturelle ou gamme mineure éolienne. Ce n'est pas une
+   gamme à proprement parlé mais comme c'est très utilisé mettons le
+   quand même. En attendant de gérer les modes. *)
+module MakeGammeMineureNaturelle(N:Note): Spec = struct
   let dominante = N.n
   let nom x = Note.to_string x^" Mineure"
   let ecarts = [2;1;2;2;1;2;2] 
@@ -129,7 +156,9 @@ module M(N:Note) (MG:Note -> Spec): S = struct
 end
 
 module Majeure(N:Note): S = M(N)(MakeGammeMajeure)
-module Mineure(N:Note): S = M(N)(MakeGammeMineure)
+module MineureMelodique(N:Note): S = M(N)(MakeGammeMineureMelodique)
+module MineureHarmonique(N:Note): S = M(N)(MakeGammeMineureHarmonique)
+module MineureNaturelle(N:Note): S = M(N)(MakeGammeMineureNaturelle)
 module Chromatique(N:Note): S = M(N)(MakeGammeChromatique)
 module PentaMajeure(N:Note): S = M(N)(MakeGammePentaMajeure)
 module PentaMineure(N:Note): S = M(N)(MakeGammePentaMineure)
@@ -137,7 +166,9 @@ module Blues(N:Note): S = M(N)(MakeGammeBlues)
 
 type gammeStandard =
   Majeur of Note.t
-| Mineur of Note.t
+| MineurMel of Note.t
+| MineurHarm of Note.t
+| MineurNat of Note.t (* gamme mineure éolienne ou mode eolien de la majeure *)
 | PentaM of Note.t
 | Pentam of Note.t
 | Blues of Note.t
@@ -148,7 +179,9 @@ let parseName n s =
   | "pentam" | "Pentam" -> Pentam n
   | "pentaM" | "PentaM" -> PentaM n
   | "majeure" | "Majeure"  | "majeur" | "Majeur" -> Majeur n
-  | "mineure" | "Mineure" | "mineur" | "Mineur" -> Mineur n
+  | "mineureharm" | "MineureHarm" | "mineurharm" | "MineurHarm" -> MineurHarm n
+  | "mineuremel" | "MineureMel" | "mineurmel" | "MineurMel" -> MineurMel n
+  | "mineurenat" | "MineureNat" | "mineurnat" | "MineurNat" -> MineurNat n
   | _ -> raise Not_found
 
 
@@ -158,9 +191,17 @@ let gen_gamme(g:gammeStandard): (module S) =
      let module Ggg = struct let n = dom end in
      let module Gg:S = Majeure(Ggg) in
      (module Gg: S)
-  | Mineur dom ->
+  | MineurHarm dom ->
      let module Ggg = struct let n = dom end in
-     let module Gg = Mineure(Ggg) in
+     let module Gg = MineureHarmonique(Ggg) in
+     (module Gg: S)
+  | MineurMel dom ->
+     let module Ggg = struct let n = dom end in
+     let module Gg = MineureMelodique(Ggg) in
+     (module Gg: S)
+  | MineurNat dom ->
+     let module Ggg = struct let n = dom end in
+     let module Gg = MineureNaturelle(Ggg) in
      (module Gg: S)
   | PentaM dom ->
      let module Ggg = struct let n = dom end in

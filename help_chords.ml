@@ -154,6 +154,7 @@ let main () =
     match !filter_mesures with
     | None -> true
     | Some l -> List.mem n l in
+  let () = Format.printf "%a@.@?" Chiffrage.pr_legend() in
   iter_lookup_prev !truncate filter_fun (module Chifr) portee;
 
   close_in ic;;

@@ -7,7 +7,7 @@
 %token EOF
 
 (** Formula tokens *)
-%token DIESE BEMOL MAJEUR MINEUR DO RE MI FA SOL LA SI PT VIRG PV GAMME
+%token DIESE BEMOL MAJEUR MINEURMEL MINEURHARM MINEURNAT DO RE MI FA SOL LA SI PT VIRG PV GAMME
 %token <string> ID
 %token <int> INT
 
@@ -82,7 +82,9 @@ chiffrage:
 
 gamme_name:
 | n=note MAJEUR { Gamme.Majeur n }
-| n=note MINEUR { Gamme.Mineur n }
+| n=note MINEURHARM { Gamme.MineurHarm n }
+| n=note MINEURMEL { Gamme.MineurMel n }
+| n=note MINEURNAT { Gamme.MineurNat n }
 | n=note g=ID { Gamme.parseName n g }
 ;
 
