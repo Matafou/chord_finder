@@ -20,7 +20,7 @@ let accord_diminue n =
   mk (tos n ^ "dim") n [ tierce_mineure n; quinte_diminuee n ]
 
 let accord_augmente n =
-  mk (tos n ^ "aug") n [ tierce_mineure n; quinte_augmentee n ]
+  mk (tos n ^ "aug") n [ tierce_majeure n; quinte_augmentee n ]
 
 let accord_majeur_7M n =
   mk (tos n ^ "7M") n [ tierce_majeure n; quinte_juste n ; septieme_majeure n ]
@@ -29,8 +29,8 @@ let accord_mineur_7m n =
 let accord_mineur_7M n =
   mk (tos n ^  "m7M") n [ tierce_mineure n; quinte_juste n ; septieme_majeure n ]
 
-let all_chord_makers = [ accord_majeur; accord_mineur; accord_majeur_7M;
-                         accord_mineur_7m; accord_majeur_6;accord_mineur_6m ;
+let all_chord_makers = [ accord_majeur; accord_mineur; accord_majeur_7m; accord_majeur_7M;
+                         accord_mineur_7m; accord_mineur_7M; accord_majeur_6;accord_mineur_6m ;
                          accord_diminue; accord_augmente ]
 
 let chain_chord_makers l =
